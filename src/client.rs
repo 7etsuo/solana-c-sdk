@@ -52,5 +52,15 @@ pub extern "C" fn request_airdrop(client: *mut SolClient, pubkey: *mut SolPublic
     };
 
     let pubkey = Pubkey::new_from_array(pubkey.data);
-    client.rpc_client.request_airdrop(&pubkey, lamports).is_ok()
+    println!("Requesting airdrop of {} lamports to pubkey: {:?}", lamports, pubkey);
+    match client.rpc_client.request_airdrop(&pubkey, lamports) {
+        Ok(signature) => {
+            println!("Airdrop requested successfully. Signature: {:?}", signature);
+            true
+        },
+        Err(err) => {
+            println!("Failed to request airdrop: {:?}", err);
+            false
+        }
+    }
 }
