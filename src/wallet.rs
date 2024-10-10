@@ -1,13 +1,64 @@
 use serde_json;
 use solana_sdk::signature::{Keypair, Signer};
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter,Write};
 use std::os::raw::c_char;
+
+pub struct SolKeyPair {
+    pub keypair: Keypair,
+}
+
+#[repr(C)]
+pub struct SolPublicKey {
+    pub data: [u8; 32]
+}
+
+#[repr(C)]
+pub struct SolSecretKey {
+    pub data: [u8; 64]
+}
+
+#[no_mangle]
+pub extern "C" fn get_public_key(wallet: *mut SolKeyPair) -> *mut SolPublicKey {
+    let wallet = unsafe {
+        assert!(!wallet.is_null());
+        &mut *wallet
+    };
+
+    let public_key = wallet.keypair.pubkey();
+    let public_key = SolPublicKey { data: public_key.to_bytes() };
+    Box::into_raw(Box::new(public_key))
+}
+
+#[no_mangle]
+pub extern "C" fn get_secret_key(wallet: *mut SolKeyPair) -> *mut SolSecretKey {
+    let wallet = unsafe {
+        assert!(!wallet.is_null());
+        &mut *wallet
+    };
+
+    let secret_key = wallet.keypair.to_bytes();
+    let secret_key = SolSecretKey { data: secret_key };
+    Box::into_raw(Box::new(secret_key))
+}
+
+#[no_mangle]
+pub extern "C" fn get_wallet_address(wallet: *mut SolKeyPair) -> *mut c_char {
+    let wallet = unsafe {
+        assert!(!wallet.is_null());
+        &mut *wallet
+    };
+
+    let public_key = wallet.keypair.pubkey();
+    let address = public_key.to_string();
+    let c_str = std::ffi::CString::new(address).unwrap();
+    c_str.into_raw()
+}
 
 // Generate and save a Solana wallet, returning the public key as a C string
 #[no_mangle]
-pub extern "C" fn create_and_save_wallet(file_path: *const c_char) -> *mut c_char {
+pub extern "C" fn create_and_save_wallet(file_path: *const c_char) -> *mut SolKeyPair {
     // Convert the C string to a Rust string
     let c_str = unsafe { CStr::from_ptr(file_path) };
     let file_path_str = match c_str.to_str() {
@@ -17,14 +68,12 @@ pub extern "C" fn create_and_save_wallet(file_path: *const c_char) -> *mut c_cha
 
     // Create a new keypair (Solana wallet)
     let keypair = Keypair::new();
-    let public_key = keypair.pubkey().to_string();
 
     // Save the private key in Solana CLI format (JSON array)
     match save_wallet_to_file(&keypair, file_path_str) {
         Ok(_) => {
-            // Return the public key as a C string
-            let c_str_public_key = CString::new(public_key).unwrap();
-            c_str_public_key.into_raw()
+            let wallet = Box::new(SolKeyPair { keypair });
+            Box::into_raw(wallet)
         }
         Err(_) => std::ptr::null_mut(),
     }
@@ -47,7 +96,7 @@ fn save_wallet_to_file(keypair: &Keypair, file_path: &str) -> std::io::Result<()
 
 // Load a Solana wallet from the file, returning the public key as a C string
 #[no_mangle]
-pub extern "C" fn load_wallet_from_file(file_path: *const c_char) -> *mut c_char {
+pub extern "C" fn load_wallet_from_file(file_path: *const c_char) -> *mut SolKeyPair {
     // Convert the C string to a Rust string
     let c_str = unsafe { CStr::from_ptr(file_path) };
     let file_path_str = match c_str.to_str() {
@@ -58,10 +107,8 @@ pub extern "C" fn load_wallet_from_file(file_path: *const c_char) -> *mut c_char
     // Load the private key from the file in Solana CLI format
     match load_wallet(file_path_str) {
         Ok(keypair) => {
-            // Return the public key as a C string
-            let public_key = keypair.pubkey().to_string();
-            let c_str_public_key = CString::new(public_key).unwrap();
-            c_str_public_key.into_raw()
+            let wallet = Box::new(SolKeyPair { keypair });
+            Box::into_raw(wallet)
         }
         Err(_) => std::ptr::null_mut(),
     }
@@ -92,15 +139,4 @@ fn load_wallet(file_path: &str) -> Result<Keypair, std::io::Error> {
     })?;
 
     Ok(keypair)
-}
-
-// Free a C string passed back to C/C++ from Rust
-#[no_mangle]
-pub extern "C" fn free_string(s: *mut c_char) {
-    if s.is_null() {
-        return;
-    }
-    unsafe {
-        CString::from_raw(s);
-    }
 }
