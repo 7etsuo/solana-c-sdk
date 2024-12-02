@@ -15,6 +15,16 @@ typedef struct SolSecretKey {
   uint8_t data[64];
 } SolSecretKey;
 
+typedef struct CValue {
+  const char *mint;
+  const char *balance;
+} CValue;
+
+typedef struct Vec_Value {
+  struct CValue *data;
+  uintptr_t len;
+} Vec_Value;
+
 typedef struct SolMint {
   struct SolPublicKey *mint_authority;
   uint64_t supply;
@@ -38,6 +48,14 @@ struct SolClient *new_sol_client(const char *url);
 uint64_t get_balance(struct SolClient *client, struct SolPublicKey *pubkey);
 
 bool request_airdrop(struct SolClient *client, struct SolPublicKey *pubkey, uint64_t lamports);
+
+struct CValue *vec_value_get_data(const struct Vec_Value *vec);
+
+uintptr_t vec_value_get_len(const struct Vec_Value *vec);
+
+void free_vec_value(struct Vec_Value *vec);
+
+struct Vec_Value *get_all_tokens(struct SolClient *client, struct SolPublicKey *wallet);
 
 bool transfer_sol(struct SolClient *client,
                   struct SolKeyPair *signer_wallet,

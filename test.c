@@ -279,6 +279,51 @@ void test_transfer_sol()
     }
 }
 
+void test_get_all_tokens()
+{
+    printf("=== Test: Get All Tokens ===\n");
+    SolClient *client = new_sol_client(devnet_url);
+    if (client == NULL)
+    {
+        printf("Failed to create Solana Client.\n");
+        return;
+    }
+
+    SolKeyPair *wallet = test_load_wallet_from_file(file_path_payer);
+    if (wallet == NULL)
+    {
+        printf("Failed to load wallet.\n");
+        return;
+    }
+
+    SolPublicKey *wallet_pubkey = get_public_key(wallet);
+    if (wallet_pubkey == NULL)
+    {
+        printf("Failed to get wallet public key.\n");
+        return;
+    }
+
+    Vec_Value *tokens = get_all_tokens(client, wallet_pubkey);
+    if (tokens == NULL)
+    {
+        printf("Failed to get tokens for wallet.\n");
+        return;
+    }
+
+    uintptr_t len = vec_value_get_len(tokens);
+    CValue *data = vec_value_get_data(tokens);
+
+    printf("Total Tokens: %lu\n", len);
+    for (uintptr_t i = 0; i < len; i++)
+    {
+        printf("Token Mint: %s, Balance: %s\n", data[i].mint, data[i].balance);
+    }
+
+    // Free the allocated memory
+    free_vec_value(tokens);
+    printf("=== End Test: Get All Tokens ===\n");
+}
+
 int main()
 {
     // Create and save the wallet
@@ -301,6 +346,9 @@ int main()
 
     // test_transfer_spl_token();
 
-    test_transfer_sol();
+    // test_transfer_sol();
+
+    test_get_all_tokens();
+
     return 0;
 }

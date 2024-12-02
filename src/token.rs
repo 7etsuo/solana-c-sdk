@@ -1,12 +1,10 @@
-use std::ffi::c_char;
+use std::ffi::{c_char, CString};
 
-use solana_client::rpc_client::RpcClient;
+use serde_json::Value;
+use solana_account_decoder::UiAccountData;
+use solana_client::rpc_request::TokenAccountsFilter;
 use solana_sdk::{
-    client,
-    instruction::Instruction,
-    program_pack::Pack,
-    pubkey::Pubkey,
-    signer::{keypair::Keypair, Signer},
+    instruction::Instruction, program_pack::Pack, pubkey::Pubkey, signer::Signer,
     transaction::Transaction,
 };
 use spl_associated_token_account;
@@ -22,6 +20,136 @@ pub struct SolMint {
     pub decimals: u8,
     pub is_initialized: bool,
     pub freeze_authority: *mut SolPublicKey,
+}
+
+#[repr(C)]
+pub struct CValue {
+    mint: *const c_char,    // Token mint as a string
+    balance: *const c_char, // Token balance as a string
+}
+
+#[repr(C)]
+pub struct Vec_Value {
+    data: *mut CValue, // Pointer to an array of `CValue`
+    len: usize,        // Length of the array
+}
+
+#[no_mangle]
+pub extern "C" fn vec_value_get_data(vec: *const Vec_Value) -> *mut CValue {
+    if vec.is_null() {
+        std::ptr::null_mut()
+    } else {
+        unsafe { (*vec).data }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn vec_value_get_len(vec: *const Vec_Value) -> usize {
+    if vec.is_null() {
+        0
+    } else {
+        unsafe { (*vec).len }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn free_vec_value(vec: *mut Vec_Value) {
+    if vec.is_null() {
+        return;
+    }
+    unsafe {
+        let vec = Box::from_raw(vec);
+        for i in 0..vec.len {
+            let value = &mut *vec.data.add(i);
+            CString::from_raw(value.mint as *mut c_char);
+            CString::from_raw(value.balance as *mut c_char);
+        }
+        Vec::from_raw_parts(vec.data, vec.len, vec.len);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn get_all_tokens(
+    client: *mut SolClient,
+    wallet: *mut SolPublicKey,
+) -> *mut Vec_Value {
+    use serde_json::Value;
+    use solana_account_decoder::UiAccountData;
+    use std::ffi::CString;
+
+    // Safety: Ensure pointers are not null
+    let client = unsafe {
+        assert!(!client.is_null());
+        &*client
+    };
+
+    let wallet = unsafe {
+        assert!(!wallet.is_null());
+        &*wallet
+    };
+
+    let wallet_pubkey = Pubkey::new_from_array(wallet.data);
+
+    // Fetch all token accounts owned by the wallet
+    let token_accounts = match client.rpc_client.get_token_accounts_by_owner(
+        &wallet_pubkey,
+        TokenAccountsFilter::ProgramId(spl_token::id()),
+    ) {
+        Ok(accounts) => accounts,
+        Err(err) => {
+            eprintln!(
+                "Error fetching token accounts for wallet {}: {:?}",
+                wallet_pubkey, err
+            );
+            return std::ptr::null_mut();
+        }
+    };
+
+    let mut tokens: Vec<CValue> = Vec::new();
+
+    // Parse token accounts
+    for keyed_account in token_accounts {
+        if let UiAccountData::Json(parsed_data) = keyed_account.account.data {
+            if let Some(info) = parsed_data.parsed.get("info") {
+                // Extract mint and tokenAmount.uiAmountString
+                let mint = info
+                    .get("mint")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Unknown Mint");
+                println!("mint {}", mint);
+                let token_amount = info
+                    .get("tokenAmount")
+                    .and_then(|v| v.get("uiAmountString"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("0");
+                println!("token_amount {}", token_amount);
+
+                // Convert to CString and push to the list
+                let mint_str = CString::new(mint).unwrap();
+                let balance_str = CString::new(token_amount).unwrap();
+                tokens.push(CValue {
+                    mint: mint_str.into_raw(),
+                    balance: balance_str.into_raw(),
+                });
+            } else {
+                eprintln!("Missing 'info' field for account: {}", keyed_account.pubkey);
+            }
+        } else {
+            eprintln!(
+                "Unexpected account data format for account: {}",
+                keyed_account.pubkey
+            );
+        }
+    }
+    println!("len {}", tokens.len());
+    // Transfer the vector ownership to C
+    let vec_value = Box::new(Vec_Value {
+        data: tokens.as_mut_ptr(),
+        len: tokens.len(),
+    });
+
+    std::mem::forget(tokens); // Prevent Rust from deallocating the tokens vector
+    Box::into_raw(vec_value) // Pass ownership to C
 }
 
 #[no_mangle]
