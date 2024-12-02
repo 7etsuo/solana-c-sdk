@@ -39,9 +39,21 @@ uint64_t get_balance(struct SolClient *client, struct SolPublicKey *pubkey);
 
 bool request_airdrop(struct SolClient *client, struct SolPublicKey *pubkey, uint64_t lamports);
 
+bool transfer_spl(struct SolClient *client,
+                  struct SolKeyPair *signer_wallet,
+                  struct SolPublicKey *sender,
+                  struct SolPublicKey *recipient,
+                  struct SolKeyPair *mint,
+                  uint64_t amount);
+
 bool create_spl_token(struct SolClient *client, struct SolKeyPair *payer, struct SolKeyPair *mint);
 
 struct SolMint *get_mint_info(struct SolClient *client, struct SolKeyPair *mint);
+
+struct SolPublicKey *create_or_get_associated_token_account(struct SolClient *client,
+                                                            struct SolKeyPair *payer,
+                                                            struct SolPublicKey *owner,
+                                                            struct SolKeyPair *mint);
 
 bool mint_spl(struct SolClient *client,
               struct SolKeyPair *signer_wallet,
