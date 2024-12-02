@@ -39,6 +39,12 @@ uint64_t get_balance(struct SolClient *client, struct SolPublicKey *pubkey);
 
 bool request_airdrop(struct SolClient *client, struct SolPublicKey *pubkey, uint64_t lamports);
 
+bool transfer_sol(struct SolClient *client,
+                  struct SolKeyPair *signer_wallet,
+                  struct SolPublicKey *sender,
+                  struct SolPublicKey *recipient,
+                  uint64_t lamports);
+
 bool transfer_spl(struct SolClient *client,
                   struct SolKeyPair *signer_wallet,
                   struct SolPublicKey *sender,

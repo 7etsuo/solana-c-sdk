@@ -234,6 +234,51 @@ void test_transfer_spl_token()
     }
 }
 
+void test_transfer_sol()
+{
+    SolClient *client = new_sol_client(devnet_url);
+    if (client != NULL)
+    {
+        SolKeyPair *signer_wallet = load_wallet_from_file(file_path_payer);
+        SolKeyPair *recipient_wallet = load_wallet_from_file(file_path_recipient);
+
+        if (signer_wallet != NULL && recipient_wallet != NULL)
+        {
+            SolPublicKey *signer_pubkey = get_public_key(signer_wallet);
+            SolPublicKey *recipient_pubkey = get_public_key(recipient_wallet);
+            uint64_t lamports = 1000000; // Transfer 0.001 SOL
+
+            printf("Transferring %lu lamports (%.9f SOL) to Wallet Address: %s\n", lamports, lamports / 1e9, get_wallet_address(recipient_wallet));
+
+            bool success = transfer_sol(client, signer_wallet, signer_pubkey, recipient_pubkey, lamports);
+
+            if (success)
+            {
+                printf("Successfully transferred %lu lamports (%.9f SOL).\n", lamports, lamports / 1e9);
+            }
+            else
+            {
+                printf("Failed to transfer SOL.\n");
+            }
+
+            // Check balances after transfer
+            uint64_t signer_balance = get_balance(client, signer_pubkey);
+            uint64_t recipient_balance = get_balance(client, recipient_pubkey);
+
+            printf("Signer Balance: %lu lamports (%.9f SOL)\n", signer_balance, signer_balance / 1e9);
+            printf("Recipient Balance: %lu lamports (%.9f SOL)\n", recipient_balance, recipient_balance / 1e9);
+        }
+        else
+        {
+            printf("Failed to load wallets for SOL transfer.\n");
+        }
+    }
+    else
+    {
+        printf("Failed to create Solana Client.\n");
+    }
+}
+
 int main()
 {
     // Create and save the wallet
@@ -243,17 +288,19 @@ int main()
 
     test_create_and_save_mint_wallet();
 
-    test_create_and_save_recipient_wallet();
+    // test_create_and_save_recipient_wallet();
 
     SolClient *client = test_sol_client_new(devnet_url);
 
     test_sol_airdrop();
 
-    test_create_spl_token();
+    // test_create_spl_token();
 
-    test_mint_spl_token();
-    test_mint_spl_token();
+    // test_mint_spl_token();
+    // test_mint_spl_token();
 
-    test_transfer_spl_token();
+    // test_transfer_spl_token();
+
+    test_transfer_sol();
     return 0;
 }

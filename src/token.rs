@@ -25,6 +25,92 @@ pub struct SolMint {
 }
 
 #[no_mangle]
+pub extern "C" fn transfer_sol(
+    client: *mut SolClient,
+    signer_wallet: *mut SolKeyPair,
+    sender: *mut SolPublicKey,
+    recipient: *mut SolPublicKey,
+    lamports: u64,
+) -> bool {
+    // Safety: Ensure pointers are not null
+    let client = unsafe {
+        assert!(!client.is_null());
+        &*client
+    };
+
+    let signer_wallet = unsafe {
+        assert!(!signer_wallet.is_null());
+        &*signer_wallet
+    };
+
+    let sender = unsafe {
+        assert!(!sender.is_null());
+        &*sender
+    };
+
+    let recipient = unsafe {
+        assert!(!recipient.is_null());
+        &*recipient
+    };
+
+    let sender_pubkey = Pubkey::new_from_array(sender.data);
+    let recipient_pubkey = Pubkey::new_from_array(recipient.data);
+
+    // Verify that the sender's account exists
+    match client.rpc_client.get_account(&sender_pubkey) {
+        Ok(account) => {
+            if account.lamports < lamports {
+                eprintln!(
+                    "Sender does not have enough SOL. Balance: {}, Required: {}",
+                    account.lamports, lamports
+                );
+                return false;
+            }
+        }
+        Err(err) => {
+            eprintln!("Error checking sender's account: {:?}", err);
+            return false;
+        }
+    }
+
+    // Step 1: Create the transfer instruction
+    let transfer_instruction =
+        solana_sdk::system_instruction::transfer(&sender_pubkey, &recipient_pubkey, lamports);
+
+    // Step 2: Fetch the recent blockhash
+    let recent_blockhash = match client.rpc_client.get_latest_blockhash() {
+        Ok(blockhash) => blockhash,
+        Err(err) => {
+            eprintln!("Error fetching latest blockhash: {:?}", err);
+            return false;
+        }
+    };
+
+    // Step 3: Create and sign the transaction
+    let mut transaction = Transaction::new_signed_with_payer(
+        &[transfer_instruction],
+        Some(&signer_wallet.keypair.pubkey()), // Fee payer
+        &[&signer_wallet.keypair],             // Required signer
+        recent_blockhash,
+    );
+
+    // Step 4: Send and confirm the transaction
+    match client.rpc_client.send_and_confirm_transaction(&transaction) {
+        Ok(_) => {
+            println!(
+                "Successfully transferred {} lamports from {} to {}",
+                lamports, sender_pubkey, recipient_pubkey
+            );
+            true
+        }
+        Err(err) => {
+            eprintln!("Error sending and confirming transaction: {:?}", err);
+            false
+        }
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn transfer_spl(
     client: *mut SolClient,
     signer_wallet: *mut SolKeyPair,
@@ -79,7 +165,7 @@ pub extern "C" fn transfer_spl(
             return false;
         }
     };
-    
+
     // Step 2: Derive sender's associated token account
     let sender_assoc =
         spl_associated_token_account::get_associated_token_address(&sender_pubkey, &mint_pubkey);
