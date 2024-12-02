@@ -167,7 +167,7 @@ pub extern "C" fn create_spl_token(
     let mint_instruction = spl_token::instruction::initialize_mint(
         &spl_token::id(),
         &mint.keypair.pubkey(),
-        &payer.keypair.pubkey(),
+        &mint.keypair.pubkey(),
         None,
         9, // Decimals
     );
@@ -432,8 +432,8 @@ pub extern "C" fn mint_spl(
         &spl_token::id(),
         &mint_authority_pubkey,
         &assoc,
-        &signer_wallet.keypair.pubkey(),
-        &[&signer_wallet.keypair.pubkey()],
+        &mint_authority.keypair.pubkey(),
+        &[&mint_authority.keypair.pubkey()],
         amount,
     ) {
         Ok(instruction) => instruction,
@@ -456,7 +456,7 @@ pub extern "C" fn mint_spl(
     let mut transaction = Transaction::new_signed_with_payer(
         &[mint_instruction],
         Some(&signer_wallet.keypair.pubkey()), // Fee payer
-        &[&signer_wallet.keypair],             // Required signers
+        &[&mint_authority.keypair, &signer_wallet.keypair], // Required signers
         recent_blockhash,
     );
 
