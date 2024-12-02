@@ -50,7 +50,7 @@ bool create_spl_token(struct SolClient *client, struct SolKeyPair *payer, struct
 
 struct SolMint *get_mint_info(struct SolClient *client, struct SolKeyPair *mint);
 
-struct SolPublicKey *create_or_get_associated_token_account(struct SolClient *client,
+struct SolPublicKey *get_or_create_associated_token_account(struct SolClient *client,
                                                             struct SolKeyPair *payer,
                                                             struct SolPublicKey *owner,
                                                             struct SolKeyPair *mint);

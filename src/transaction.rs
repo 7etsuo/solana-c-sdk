@@ -63,14 +63,28 @@ pub extern "C" fn transfer_spl(
     let recipient_pubkey = Pubkey::new_from_array(recipient.data);
     let mint_pubkey = mint.keypair.pubkey();
 
-    // Get sender's and recipient's associated token accounts
+    // Step 1: Get or create recipient's associated token account
+    let recipient_assoc = match _get_or_create_associated_token_account(
+        client,
+        signer_wallet,
+        &recipient_pubkey,
+        &mint_pubkey,
+    ) {
+        Ok(assoc) => assoc,
+        Err(err) => {
+            eprintln!(
+                "Error managing recipient's associated token account: {}",
+                err
+            );
+            return false;
+        }
+    };
+
+    // Step 2: Derive sender's associated token account
     let sender_assoc =
         spl_associated_token_account::get_associated_token_address(&sender_pubkey, &mint_pubkey);
 
-    let recipient_assoc =
-        spl_associated_token_account::get_associated_token_address(&recipient_pubkey, &mint_pubkey);
-
-    // Create the transfer instruction
+    // Step 3: Create the transfer instruction
     let transfer_instruction = match spl_token::instruction::transfer(
         &spl_token::id(),
         &sender_assoc,
@@ -86,24 +100,24 @@ pub extern "C" fn transfer_spl(
         }
     };
 
-    // Get the latest blockhash
+    // Step 4: Fetch the recent blockhash
     let recent_blockhash = match client.rpc_client.get_latest_blockhash() {
         Ok(blockhash) => blockhash,
         Err(err) => {
-            eprintln!("Error getting latest blockhash: {:?}", err);
+            eprintln!("Error fetching latest blockhash: {:?}", err);
             return false;
         }
     };
 
-    // Create and sign the transaction
+    // Step 5: Create and sign the transaction
     let mut transaction = Transaction::new_signed_with_payer(
         &[transfer_instruction],
-        Some(&signer_wallet.keypair.pubkey()),
-        &[&signer_wallet.keypair],
+        Some(&signer_wallet.keypair.pubkey()), // Fee payer
+        &[&signer_wallet.keypair],             // Required signers
         recent_blockhash,
     );
 
-    // Send and confirm the transaction
+    // Step 6: Send and confirm the transaction
     match client.rpc_client.send_and_confirm_transaction(&transaction) {
         Ok(_) => {
             println!(
@@ -251,7 +265,7 @@ pub extern "C" fn get_mint_info(client: *mut SolClient, mint: *mut SolKeyPair) -
 }
 
 #[no_mangle]
-pub extern "C" fn create_or_get_associated_token_account(
+pub extern "C" fn get_or_create_associated_token_account(
     client: *mut SolClient,
     payer: *mut SolKeyPair,
     owner: *mut SolPublicKey,
@@ -275,66 +289,80 @@ pub extern "C" fn create_or_get_associated_token_account(
         &*mint
     };
 
+    // Extract public keys
     let owner_pubkey = Pubkey::new_from_array(owner.data);
     let mint_pubkey = mint.keypair.pubkey();
-    let assoc =
-        spl_associated_token_account::get_associated_token_address(&owner_pubkey, &mint_pubkey);
 
-    match client.rpc_client.get_account(&assoc) {
-        Ok(_account) => {
-            // Account exists
-            println!("Associated token account already exists at: {}", assoc);
-            return Box::into_raw(Box::new(SolPublicKey {
-                data: assoc.to_bytes(),
-            }));
-        }
+    // Call the helper function to get or create the associated token account
+    match _get_or_create_associated_token_account(client, payer, &owner_pubkey, &mint_pubkey) {
+        Ok(assoc) => Box::into_raw(Box::new(SolPublicKey {
+            data: assoc.to_bytes(),
+        })),
         Err(err) => {
-            // Handle errors (including account not existing)
-            eprintln!("Error fetching associated token account: {:?}", err);
-            println!("Proceeding to create the associated token account...");
+            eprintln!("Error managing associated token account: {}", err);
+            std::ptr::null_mut()
         }
     }
+}
 
-    // Create the associated token account
-    let assoc_instruction =
-        spl_associated_token_account::instruction::create_associated_token_account(
-            &payer.keypair.pubkey(),
-            &owner_pubkey,
-            &mint_pubkey,
-            &spl_token::id(),
-        );
+pub fn _get_or_create_associated_token_account(
+    client: &SolClient,
+    signer_wallet: &SolKeyPair,
+    recipient_pubkey: &Pubkey,
+    mint_pubkey: &Pubkey,
+) -> Result<Pubkey, String> {
+    let assoc =
+        spl_associated_token_account::get_associated_token_address(recipient_pubkey, mint_pubkey);
 
-    let recent_blockhash = match client.rpc_client.get_latest_blockhash() {
-        Ok(blockhash) => blockhash,
-        Err(err) => {
-            eprintln!("Error getting latest blockhash: {:?}", err);
-            return std::ptr::null_mut();
+    match client.rpc_client.get_account(&assoc) {
+        Ok(account) => {
+            // Associated token account exists
+            println!("Associated token account already exists at: {}", assoc);
+            Ok(assoc)
         }
-    };
+        Err(ref err)
+            if matches!(
+                err.kind(),
+                solana_client::client_error::ClientErrorKind::RpcError(_)
+            ) =>
+        {
+            // Create the associated token account
+            println!("Associated token account does not exist. Proceeding to create...");
+            let assoc_instruction =
+                spl_associated_token_account::instruction::create_associated_token_account(
+                    &signer_wallet.keypair.pubkey(),
+                    recipient_pubkey,
+                    mint_pubkey,
+                    &spl_token::id(),
+                );
 
-    // Create and sign the transaction
-    let mut transaction = Transaction::new_signed_with_payer(
-        &[assoc_instruction],
-        Some(&payer.keypair.pubkey()),
-        &[&payer.keypair],
-        recent_blockhash,
-    );
+            let recent_blockhash = client
+                .rpc_client
+                .get_latest_blockhash()
+                .map_err(|err| format!("Error fetching latest blockhash: {:?}", err))?;
 
-    // Send and confirm the transaction
-    match client.rpc_client.send_and_confirm_transaction(&transaction) {
-        Ok(_) => {
+            let mut assoc_transaction = Transaction::new_signed_with_payer(
+                &[assoc_instruction],
+                Some(&signer_wallet.keypair.pubkey()),
+                &[&signer_wallet.keypair],
+                recent_blockhash,
+            );
+
+            client
+                .rpc_client
+                .send_and_confirm_transaction(&assoc_transaction)
+                .map_err(|err| format!("Error creating associated token account: {:?}", err))?;
+
             println!(
                 "Associated token account created successfully at: {}",
                 assoc
             );
-            Box::into_raw(Box::new(SolPublicKey {
-                data: assoc.to_bytes(),
-            }))
+            Ok(assoc)
         }
-        Err(err) => {
-            eprintln!("Error creating associated token account: {:?}", err);
-            std::ptr::null_mut()
-        }
+        Err(err) => Err(format!(
+            "Unexpected error checking associated token account: {:?}",
+            err
+        )),
     }
 }
 
@@ -367,65 +395,19 @@ pub extern "C" fn mint_spl(
     let mint_authority_pubkey = mint_authority.keypair.pubkey();
     let recipient_pubkey = Pubkey::new_from_array(recipient.data);
 
-    // Derive the associated token account address
-    let assoc = spl_associated_token_account::get_associated_token_address(
+    // Get or create associated token account
+    let assoc = match _get_or_create_associated_token_account(
+        client,
+        signer_wallet,
         &recipient_pubkey,
         &mint_authority_pubkey,
-    );
-
-    // Step 1: Check if the associated token account exists
-    match client.rpc_client.get_account(&assoc) {
-        Ok(_account) => {
-            println!("Associated token account already exists at: {}", assoc);
-        }
-        Err(ref err)
-            if matches!(
-                err.kind(),
-                solana_client::client_error::ClientErrorKind::RpcError(_)
-            ) =>
-        {
-            println!("Associated token account does not exist. Proceeding to create...");
-
-            // Step 2: Create the associated token account
-            let assoc_instruction =
-                spl_associated_token_account::instruction::create_associated_token_account(
-                    &signer_wallet.keypair.pubkey(),
-                    &recipient_pubkey,
-                    &mint_authority_pubkey,
-                    &spl_token::id(),
-                );
-
-            let recent_blockhash = match client.rpc_client.get_latest_blockhash() {
-                Ok(blockhash) => blockhash,
-                Err(err) => {
-                    eprintln!("Error fetching latest blockhash: {:?}", err);
-                    return false;
-                }
-            };
-
-            let mut assoc_transaction = Transaction::new_signed_with_payer(
-                &[assoc_instruction],
-                Some(&signer_wallet.keypair.pubkey()),
-                &[&signer_wallet.keypair],
-                recent_blockhash,
-            );
-
-            if let Err(err) = client
-                .rpc_client
-                .send_and_confirm_transaction(&assoc_transaction)
-            {
-                eprintln!("Error creating associated token account: {:?}", err);
-                return false;
-            }
-        }
+    ) {
+        Ok(assoc) => assoc,
         Err(err) => {
-            eprintln!(
-                "Unexpected error checking associated token account: {:?}",
-                err
-            );
+            eprintln!("Error managing associated token account: {}", err);
             return false;
         }
-    }
+    };
 
     // Step 3: Create the mint_to instruction
     let mint_instruction = match spl_token::instruction::mint_to(
