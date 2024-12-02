@@ -4,44 +4,46 @@
 
 const char *file_path = "wallet_keypair.json";
 const char *file_path_payer = "wallet_keypair.json";
+const char *file_path_recipient = "wallet_keypair_recipient.json";
+const char *file_path_recipient2 = "wallet_keypair_recipient2.json";
 const char *file_path_mint = "wallet_keypair_mint.json";
 const char *devnet_url = "https://api.devnet.solana.com";
 
-void test_create_and_save_wallet(const char *file_path)
+SolKeyPair *test_create_and_save_wallet(const char *file_path)
 {
     SolKeyPair *wallet = create_and_save_wallet(file_path);
-    SolKeyPair *payer = create_and_save_wallet(file_path_payer);
-    SolClient *mint = create_and_save_wallet(file_path_mint);
     // Check if the all wallet creation succeeded
-    if (wallet != NULL && payer != NULL && mint != NULL)
+    if (wallet != NULL)
     {
         // Print the wallet address
         printf("Solana Wallet Address: %s\n", get_wallet_address(wallet));
-        printf("Solana payer Wallet Address: %s\n", get_wallet_address(payer));
-        printf("Solana mint Wallet Address: %s\n", get_wallet_address(mint));
     }
     else
     {
         printf("Failed to create wallet.\n");
     }
+    return wallet;
 }
 
-void test_create_and_save_mint_wallet()
+SolKeyPair *test_create_and_save_mint_wallet()
 {
-    SolClient *mint = create_and_save_wallet(file_path_mint);
-    // Check if the all wallet creation succeeded
-    if (mint != NULL)
-    {
-        // Print the wallet address
-        printf("Solana mint Wallet Address: %s\n", get_wallet_address(mint));
-    }
-    else
-    {
-        printf("Failed to create wallet.\n");
-    }
+    printf("Create mint wallet");
+    return test_create_and_save_wallet(file_path_mint);
 }
 
-void test_load_wallet_from_file(const char *file_path)
+SolKeyPair *test_create_and_save_recipient_wallet()
+{
+    printf("Create Recipient wallet");
+    return test_create_and_save_wallet(file_path_recipient);
+}
+
+SolKeyPair *test_create_and_save_recipient2_wallet()
+{
+    printf("Create Recipient2 wallet");
+    return test_create_and_save_wallet(file_path_recipient2);
+}
+
+SolKeyPair *test_load_wallet_from_file(const char *file_path)
 {
     SolKeyPair *wallet = load_wallet_from_file(file_path);
     // Check if the wallet loading succeeded
@@ -57,9 +59,10 @@ void test_load_wallet_from_file(const char *file_path)
     {
         printf("Failed to load wallet.\n");
     }
+    return wallet;
 }
 
-void test_sol_client_new(const char *url)
+SolClient *test_sol_client_new(const char *url)
 {
     SolClient *client = new_sol_client(url);
     if (client != NULL)
@@ -70,6 +73,7 @@ void test_sol_client_new(const char *url)
     {
         printf("Failed to create Solana Client.\n");
     }
+    return client;
 }
 
 void test_sol_airdrop()
@@ -160,10 +164,10 @@ void test_mint_spl_token()
 
         if (payer != NULL && mint != NULL)
         {
-            SolKeyPair *recipient = load_wallet_from_file("wallet_keypair_recipient.json");
+            SolKeyPair *recipient = load_wallet_from_file(file_path_payer);
             if (recipient != NULL)
             {
-                printf("Solana recipient Wallet Address: %s\n", get_wallet_address(recipient));
+                printf("Solana Token Mint To Wallet Address: %s\n", get_wallet_address(recipient));
                 uint64_t amount = 1000000000000;
                 bool success = mint_spl(client, payer, mint, get_public_key(recipient), amount);
                 // get balance
@@ -171,7 +175,7 @@ void test_mint_spl_token()
                 if (success)
                 {
                     printf("SPL Token minted successfully.\n");
-                    printf("Recipient Balance: %lu\n", balance);
+                    printf("Mint To Wallet Balance: %lu\n", balance);
                 }
                 else
                 {
@@ -194,16 +198,54 @@ void test_mint_spl_token()
     }
 }
 
+void test_transfer_spl_token()
+{
+    SolClient *client = new_sol_client(devnet_url);
+    if (client != NULL)
+    {
+        SolKeyPair *signer_wallet = load_wallet_from_file(file_path_payer);
+        SolKeyPair *mint = load_wallet_from_file(file_path_mint);
+        SolKeyPair *recipient = load_wallet_from_file(file_path_recipient);
+
+        if (signer_wallet != NULL && mint != NULL && recipient != NULL)
+        {
+            SolPublicKey *sender_pubkey = get_public_key(signer_wallet);
+            SolPublicKey *recipient_pubkey = get_public_key(recipient);
+            uint64_t amount = 500000000; // Transfer 500 tokens
+            printf("Solana Token Transfer to  Wallet Address: %s\n", get_wallet_address(recipient));
+            bool success = transfer_spl(client, signer_wallet, sender_pubkey, recipient_pubkey, mint, amount);
+            if (success)
+            {
+                printf("SPL Token transferred successfully.\n");
+            }
+            else
+            {
+                printf("Failed to transfer SPL Token.\n");
+            }
+        }
+        else
+        {
+            printf("Failed to load wallets for transfer.\n");
+        }
+    }
+    else
+    {
+        printf("Failed to create Solana Client.\n");
+    }
+}
+
 int main()
 {
     // Create and save the wallet
-    // test_create_and_save_wallet(file_path);
+    // test_create_and_save_wallet(file_path_recipient2);
+    // Load and verify the wallet
+    // test_load_wallet_from_file(file_path);
 
     test_create_and_save_mint_wallet();
-    // Load and verify the wallet
-    test_load_wallet_from_file(file_path);
 
-    test_sol_client_new(devnet_url);
+    test_create_and_save_recipient_wallet();
+
+    SolClient *client = test_sol_client_new(devnet_url);
 
     test_sol_airdrop();
 
@@ -212,5 +254,6 @@ int main()
     test_mint_spl_token();
     test_mint_spl_token();
 
+    test_transfer_spl_token();
     return 0;
 }
