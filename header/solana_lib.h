@@ -15,15 +15,16 @@ typedef struct SolSecretKey {
   uint8_t data[64];
 } SolSecretKey;
 
-typedef struct CValue {
+typedef struct TokenInfo {
   const char *mint;
   const char *balance;
-} CValue;
+  const char *owner;
+} TokenInfo;
 
-typedef struct Vec_Value {
-  struct CValue *data;
+typedef struct TokenList {
+  struct TokenInfo *data;
   uintptr_t len;
-} Vec_Value;
+} TokenList;
 
 typedef struct SolMint {
   struct SolPublicKey *mint_authority;
@@ -49,13 +50,13 @@ uint64_t get_balance(struct SolClient *client, struct SolPublicKey *pubkey);
 
 bool request_airdrop(struct SolClient *client, struct SolPublicKey *pubkey, uint64_t lamports);
 
-struct CValue *vec_value_get_data(const struct Vec_Value *vec);
+struct TokenList *get_all_tokens(struct SolClient *client, struct SolPublicKey *wallet);
 
-uintptr_t vec_value_get_len(const struct Vec_Value *vec);
+struct TokenInfo *token_list_get_data(const struct TokenList *list);
 
-void free_vec_value(struct Vec_Value *vec);
+uintptr_t token_list_get_len(const struct TokenList *list);
 
-struct Vec_Value *get_all_tokens(struct SolClient *client, struct SolPublicKey *wallet);
+void free_token_list(struct TokenList *list);
 
 bool transfer_sol(struct SolClient *client,
                   struct SolKeyPair *signer_wallet,

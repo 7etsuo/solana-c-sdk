@@ -303,24 +303,24 @@ void test_get_all_tokens()
         return;
     }
 
-    Vec_Value *tokens = get_all_tokens(client, wallet_pubkey);
-    if (tokens == NULL)
+    TokenList *tokens = get_all_tokens(client, wallet_pubkey);
+    if (!tokens)
     {
-        printf("Failed to get tokens for wallet.\n");
+        printf("Failed to fetch tokens.\n");
         return;
     }
 
-    uintptr_t len = vec_value_get_len(tokens);
-    CValue *data = vec_value_get_data(tokens);
+    uintptr_t len = token_list_get_len(tokens);
+    TokenInfo *data = token_list_get_data(tokens);
 
     printf("Total Tokens: %lu\n", len);
     for (uintptr_t i = 0; i < len; i++)
     {
-        printf("Token Mint: %s, Balance: %s\n", data[i].mint, data[i].balance);
+        printf("Token Mint: %s, Balance: %s, Owner: %s\n",
+               data[i].mint, data[i].balance, data[i].owner);
     }
 
-    // Free the allocated memory
-    free_vec_value(tokens);
+    free_token_list(tokens);
     printf("=== End Test: Get All Tokens ===\n");
 }
 

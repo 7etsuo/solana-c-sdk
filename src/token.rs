@@ -23,60 +23,23 @@ pub struct SolMint {
 }
 
 #[repr(C)]
-pub struct CValue {
+pub struct TokenInfo {
     mint: *const c_char,    // Token mint as a string
     balance: *const c_char, // Token balance as a string
+    owner: *const c_char,   // Token owner as a string
 }
 
 #[repr(C)]
-pub struct Vec_Value {
-    data: *mut CValue, // Pointer to an array of `CValue`
-    len: usize,        // Length of the array
-}
-
-#[no_mangle]
-pub extern "C" fn vec_value_get_data(vec: *const Vec_Value) -> *mut CValue {
-    if vec.is_null() {
-        std::ptr::null_mut()
-    } else {
-        unsafe { (*vec).data }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn vec_value_get_len(vec: *const Vec_Value) -> usize {
-    if vec.is_null() {
-        0
-    } else {
-        unsafe { (*vec).len }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn free_vec_value(vec: *mut Vec_Value) {
-    if vec.is_null() {
-        return;
-    }
-    unsafe {
-        let vec = Box::from_raw(vec);
-        for i in 0..vec.len {
-            let value = &mut *vec.data.add(i);
-            CString::from_raw(value.mint as *mut c_char);
-            CString::from_raw(value.balance as *mut c_char);
-        }
-        Vec::from_raw_parts(vec.data, vec.len, vec.len);
-    }
+pub struct TokenList {
+    data: *mut TokenInfo, // Pointer to an array of `TokenInfo`
+    len: usize,           // Length of the array
 }
 
 #[no_mangle]
 pub extern "C" fn get_all_tokens(
     client: *mut SolClient,
     wallet: *mut SolPublicKey,
-) -> *mut Vec_Value {
-    use serde_json::Value;
-    use solana_account_decoder::UiAccountData;
-    use std::ffi::CString;
-
+) -> *mut TokenList {
     // Safety: Ensure pointers are not null
     let client = unsafe {
         assert!(!client.is_null());
@@ -105,34 +68,28 @@ pub extern "C" fn get_all_tokens(
         }
     };
 
-    let mut tokens: Vec<CValue> = Vec::new();
+    let mut tokens: Vec<TokenInfo> = Vec::new();
 
-    // Parse token accounts
     for keyed_account in token_accounts {
         if let UiAccountData::Json(parsed_data) = keyed_account.account.data {
-            if let Some(info) = parsed_data.parsed.get("info") {
-                // Extract mint and tokenAmount.uiAmountString
-                let mint = info
-                    .get("mint")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("Unknown Mint");
-                println!("mint {}", mint);
-                let token_amount = info
-                    .get("tokenAmount")
-                    .and_then(|v| v.get("uiAmountString"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("0");
-                println!("token_amount {}", token_amount);
+            if let Some(info) = parsed_data.parsed.get("info").and_then(|v| v.as_object()) {
+                if let (Some(mint), Some(balance), Some(owner)) = (
+                    info.get("mint").and_then(|v| v.as_str()),
+                    info.get("tokenAmount")
+                        .and_then(|v| v.get("uiAmountString"))
+                        .and_then(|v| v.as_str()),
+                    info.get("owner").and_then(|v| v.as_str()),
+                ) {
+                    let mint_c = CString::new(mint).unwrap();
+                    let balance_c = CString::new(balance).unwrap();
+                    let owner_c = CString::new(owner).unwrap();
 
-                // Convert to CString and push to the list
-                let mint_str = CString::new(mint).unwrap();
-                let balance_str = CString::new(token_amount).unwrap();
-                tokens.push(CValue {
-                    mint: mint_str.into_raw(),
-                    balance: balance_str.into_raw(),
-                });
-            } else {
-                eprintln!("Missing 'info' field for account: {}", keyed_account.pubkey);
+                    tokens.push(TokenInfo {
+                        mint: mint_c.into_raw(),
+                        balance: balance_c.into_raw(),
+                        owner: owner_c.into_raw(),
+                    });
+                }
             }
         } else {
             eprintln!(
@@ -141,15 +98,50 @@ pub extern "C" fn get_all_tokens(
             );
         }
     }
-    println!("len {}", tokens.len());
-    // Transfer the vector ownership to C
-    let vec_value = Box::new(Vec_Value {
+
+    let token_list = Box::new(TokenList {
         data: tokens.as_mut_ptr(),
         len: tokens.len(),
     });
 
-    std::mem::forget(tokens); // Prevent Rust from deallocating the tokens vector
-    Box::into_raw(vec_value) // Pass ownership to C
+    std::mem::forget(tokens); // Prevent Rust from deallocating the vector
+    Box::into_raw(token_list) // Pass ownership to C
+}
+
+#[no_mangle]
+pub extern "C" fn token_list_get_data(list: *const TokenList) -> *mut TokenInfo {
+    if list.is_null() {
+        std::ptr::null_mut()
+    } else {
+        unsafe { (*list).data }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn token_list_get_len(list: *const TokenList) -> usize {
+    if list.is_null() {
+        0
+    } else {
+        unsafe { (*list).len }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn free_token_list(list: *mut TokenList) {
+    if list.is_null() {
+        return;
+    }
+
+    unsafe {
+        let list = Box::from_raw(list);
+        for i in 0..list.len {
+            let token_info = &mut *list.data.add(i);
+            CString::from_raw(token_info.mint as *mut c_char);
+            CString::from_raw(token_info.balance as *mut c_char);
+            CString::from_raw(token_info.owner as *mut c_char);
+        }
+        Vec::from_raw_parts(list.data, list.len, list.len);
+    }
 }
 
 #[no_mangle]
