@@ -11,17 +11,18 @@ const char *devnet_url = "https://api.devnet.solana.com";
 
 SolKeyPair *test_create_and_save_wallet(const char *file_path)
 {
+    printf("=== Test: Create and Save Wallet ===\n");
     SolKeyPair *wallet = create_and_save_wallet(file_path);
-    // Check if the all wallet creation succeeded
     if (wallet != NULL)
     {
-        // Print the wallet address
-        printf("Solana Wallet Address: %s\n", get_wallet_address(wallet));
+        printf("Wallet created and saved successfully.\n");
+        printf("Wallet Address: %s\n", get_wallet_address(wallet));
     }
     else
     {
         printf("Failed to create wallet.\n");
     }
+    printf("=== End Test: Create and Save Wallet ===\n");
     return wallet;
 }
 
@@ -156,46 +157,62 @@ void test_create_spl_token()
 
 void test_mint_spl_token()
 {
-    SolClient *client = new_sol_client(devnet_url);
-    if (client != NULL)
-    {
-        SolKeyPair *payer = load_wallet_from_file(file_path_payer);
-        SolClient *mint = load_wallet_from_file(file_path_mint);
+    printf("=== Test: Mint SPL Token ===\n");
 
-        if (payer != NULL && mint != NULL)
-        {
-            SolKeyPair *recipient = load_wallet_from_file(file_path_payer);
-            if (recipient != NULL)
-            {
-                printf("Solana Token Mint To Wallet Address: %s\n", get_wallet_address(recipient));
-                uint64_t amount = 1000000000000;
-                bool success = mint_spl(client, payer, mint, get_public_key(recipient), amount);
-                // get balance
-                uint64_t balance = get_associated_token_balance(client, get_public_key(recipient), mint);
-                if (success)
-                {
-                    printf("SPL Token minted successfully.\n");
-                    printf("Mint To Wallet Balance: %lu\n", balance);
-                }
-                else
-                {
-                    printf("Failed to mint SPL Token.\n");
-                }
-            }
-            else
-            {
-                printf("Failed to create recipient wallet.\n");
-            }
-        }
-        else
-        {
-            printf("Failed to create wallets.\n");
-        }
+    // Create a Solana client
+    SolClient *client = new_sol_client(devnet_url);
+    if (client == NULL)
+    {
+        printf("Error: Failed to create Solana Client.\n");
+        return;
+    }
+
+    // Load the payer wallet
+    SolKeyPair *payer = load_wallet_from_file(file_path_payer);
+    if (payer == NULL)
+    {
+        printf("Error: Failed to load payer wallet from file: %s\n", file_path_payer);
+        return;
+    }
+
+    // Load the mint wallet
+    SolKeyPair *mint = load_wallet_from_file(file_path_mint);
+    if (mint == NULL)
+    {
+        printf("Error: Failed to load mint wallet from file: %s\n", file_path_mint);
+        return;
+    }
+
+    // Load the recipient wallet
+    SolKeyPair *recipient = load_wallet_from_file(file_path_payer);
+    if (recipient == NULL)
+    {
+        printf("Error: Failed to load recipient wallet from file: %s\n", file_path_payer);
+        return;
+    }
+
+    // Print recipient wallet address
+    printf("Recipient Wallet Address: %s\n", get_wallet_address(recipient));
+
+    // Define the amount to mint
+    uint64_t amount = 1000000000000;
+
+    // Perform the mint operation
+    printf("Minting %lu tokens to recipient wallet...\n", amount);
+    bool success = mint_spl(client, payer, mint, get_public_key(recipient), amount);
+    if (success)
+    {
+        // Get the recipient's token balance
+        uint64_t balance = get_associated_token_balance(client, get_public_key(recipient), mint);
+        printf("Success: SPL Token minted successfully.\n");
+        printf("Recipient Token Balance: %lu\n", balance);
     }
     else
     {
-        printf("Failed to create Solana Client.\n");
+        printf("Error: Failed to mint SPL Token.\n");
     }
+
+    printf("=== End Test: Mint SPL Token ===\n");
 }
 
 void test_transfer_spl_token()
@@ -339,14 +356,14 @@ int main()
 
     test_sol_airdrop();
 
-    // test_create_spl_token();
+    test_create_spl_token();
 
-    // test_mint_spl_token();
-    // test_mint_spl_token();
+    test_mint_spl_token();
+    test_mint_spl_token();
 
-    // test_transfer_spl_token();
+    test_transfer_spl_token();
 
-    // test_transfer_sol();
+    test_transfer_sol();
 
     test_get_all_tokens();
 

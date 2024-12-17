@@ -1,6 +1,5 @@
 use std::ffi::{c_char, CString};
 
-use serde_json::Value;
 use solana_account_decoder::UiAccountData;
 use solana_client::rpc_request::TokenAccountsFilter;
 use solana_sdk::{
