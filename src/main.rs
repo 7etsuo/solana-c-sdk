@@ -7,14 +7,38 @@ use solana_sdk::{
     pubkey::Pubkey,
     signature::{Keypair, Signer},
     signer::EncodableKey,
+    system_program,
     transaction::Transaction,
 };
 use std::str::FromStr;
 
+const DISCRIMINATOR: usize = 8;
 // Define the Counter account structure
 #[derive(BorshDeserialize, Debug)]
 pub struct Counter {
     pub count: u64, // Actual counter value stored in the account
+}
+
+fn initialize_counter(client: &RpcClient, payer: &Keypair, program_id: &Pubkey, counter: &Keypair) {
+    println!("🔧 Initializing counter...");
+
+    // Compute discriminator for "initialize"
+    let method_discriminator = get_discriminator("initialize");
+
+    // Instruction to initialize the counter account
+    let instruction = Instruction::new_with_bytes(
+        *program_id,
+        &method_discriminator,
+        vec![
+            AccountMeta::new(counter.pubkey(), true), // Mark counter as signer (fix)
+            AccountMeta::new(payer.pubkey(), true),   // Payer (signer)
+            AccountMeta::new_readonly(system_program::ID, false),
+        ],
+    );
+
+    // Pass both the payer and the counter as signers
+    send_transaction(client, &[instruction], &[payer, &counter]);
+    println!("✅ Counter initialized at: {}", counter.pubkey());
 }
 
 #[tokio::main]
@@ -32,9 +56,13 @@ async fn main() {
     // Step 3: Program ID of the deployed Anchor program
     let program_id = Pubkey::from_str("DsfPR2teuRS9ABmqGqq5NobD8Y9A9KvzMVNVzsjSP8Dy").unwrap();
     println!("✅ Program ID: {}", program_id);
+    let counter = Keypair::new(); // New keypair for the counter
+    println!("🔑 New Counter Pubkey: {}", counter.pubkey());
+
+    initialize_counter(&client, &payer, &program_id, &counter);
 
     // Step 4: Use the existing counter account pubkey
-    let counter_pubkey = Pubkey::from_str("5NyrHC41HNR7zQju6uC3yghhWYGkZD2nckLhduubyYoT").unwrap();
+    let counter_pubkey = counter.pubkey();
     println!("🚀 Using existing Counter Account: {}", counter_pubkey);
 
     // Step 5: Increment the Counter
