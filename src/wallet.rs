@@ -1,22 +1,73 @@
 use serde_json;
+use solana_program::pubkey::Pubkey;
 use solana_sdk::signature::{Keypair, Signer};
 use std::ffi::CStr;
 use std::fs::File;
-use std::io::{BufReader, BufWriter,Write};
+use std::io::{BufReader, BufWriter, Write};
 use std::os::raw::c_char;
-
+#[repr(C)]
+#[repr(C)]
 pub struct SolKeyPair {
-    pub keypair: Keypair,
+    pub bytes: [u8; 64], // Store the keypair as raw bytes
+    pub pubkey: SolPublicKey,
+}
+
+impl SolKeyPair {
+    // Generate a new keypair and store it as bytes
+    pub fn new() -> Self {
+        let keypair = Keypair::new();
+        let pubkey = keypair.pubkey();
+
+        SolKeyPair {
+            bytes: keypair.to_bytes(),
+            pubkey: SolPublicKey {
+                data: pubkey.to_bytes(),
+            },
+        }
+    }
+
+    // Create from existing keypair (Keypair -> bytes)
+    pub fn from_existing(keypair: Keypair) -> Self {
+        let pubkey = keypair.pubkey();
+        SolKeyPair {
+            bytes: keypair.to_bytes(),
+            pubkey: SolPublicKey {
+                data: pubkey.to_bytes(),
+            },
+        }
+    }
+
+    // Convert raw bytes back to a Keypair
+    pub fn to_keypair(&self) -> Keypair {
+        Keypair::from_bytes(&self.bytes).expect("Failed to convert bytes to Keypair")
+    }
+
+    // Return the public key as a Pubkey
+    pub fn get_pubkey(&self) -> Pubkey {
+        Pubkey::new_from_array(self.pubkey.data)
+    }
 }
 
 #[repr(C)]
 pub struct SolPublicKey {
-    pub data: [u8; 32]
+    pub data: [u8; 32],
+}
+
+impl SolPublicKey {
+    pub fn new(pubkey: Pubkey) -> Self {
+        SolPublicKey {
+            data: pubkey.to_bytes(),
+        }
+    }
+
+    pub fn to_pubkey(&self) -> Pubkey {
+        Pubkey::new_from_array(self.data)
+    }
 }
 
 #[repr(C)]
 pub struct SolSecretKey {
-    pub data: [u8; 64]
+    pub data: [u8; 64],
 }
 
 #[no_mangle]
@@ -26,8 +77,11 @@ pub extern "C" fn get_public_key(wallet: *mut SolKeyPair) -> *mut SolPublicKey {
         &mut *wallet
     };
 
-    let public_key = wallet.keypair.pubkey();
-    let public_key = SolPublicKey { data: public_key.to_bytes() };
+    let keypair = wallet.to_keypair();
+    let public_key = keypair.pubkey();
+    let public_key = SolPublicKey {
+        data: public_key.to_bytes(),
+    };
     Box::into_raw(Box::new(public_key))
 }
 
@@ -38,7 +92,7 @@ pub extern "C" fn get_secret_key(wallet: *mut SolKeyPair) -> *mut SolSecretKey {
         &mut *wallet
     };
 
-    let secret_key = wallet.keypair.to_bytes();
+    let secret_key = wallet.to_keypair().to_bytes();
     let secret_key = SolSecretKey { data: secret_key };
     Box::into_raw(Box::new(secret_key))
 }
@@ -50,7 +104,7 @@ pub extern "C" fn get_wallet_address(wallet: *mut SolKeyPair) -> *mut c_char {
         &mut *wallet
     };
 
-    let public_key = wallet.keypair.pubkey();
+    let public_key = wallet.to_keypair().pubkey();
     let address = public_key.to_string();
     let c_str = std::ffi::CString::new(address).unwrap();
     c_str.into_raw()
@@ -72,7 +126,7 @@ pub extern "C" fn create_and_save_wallet(file_path: *const c_char) -> *mut SolKe
     // Save the private key in Solana CLI format (JSON array)
     match save_wallet_to_file(&keypair, file_path_str) {
         Ok(_) => {
-            let wallet = Box::new(SolKeyPair { keypair });
+            let wallet = Box::new(SolKeyPair::from_existing(keypair));
             Box::into_raw(wallet)
         }
         Err(_) => std::ptr::null_mut(),
@@ -94,6 +148,12 @@ fn save_wallet_to_file(keypair: &Keypair, file_path: &str) -> std::io::Result<()
     Ok(())
 }
 
+#[no_mangle]
+pub extern "C" fn new_keypair() -> *mut SolKeyPair {
+    let keypair = Keypair::new();
+    Box::into_raw(Box::new(SolKeyPair::from_existing(keypair)))
+}
+
 // Load a Solana wallet from the file, returning the public key as a C string
 #[no_mangle]
 pub extern "C" fn load_wallet_from_file(file_path: *const c_char) -> *mut SolKeyPair {
@@ -107,7 +167,7 @@ pub extern "C" fn load_wallet_from_file(file_path: *const c_char) -> *mut SolKey
     // Load the private key from the file in Solana CLI format
     match load_wallet(file_path_str) {
         Ok(keypair) => {
-            let wallet = Box::new(SolKeyPair { keypair });
+            let wallet = Box::new(SolKeyPair::from_existing(keypair));
             Box::into_raw(wallet)
         }
         Err(_) => std::ptr::null_mut(),

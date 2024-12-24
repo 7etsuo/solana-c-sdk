@@ -348,24 +348,50 @@ int main()
     // Load and verify the wallet
     // test_load_wallet_from_file(file_path);
 
-    test_create_and_save_mint_wallet();
+    // test_create_and_save_mint_wallet();
 
-    // test_create_and_save_recipient_wallet();
+    // // test_create_and_save_recipient_wallet();
 
-    SolClient *client = test_sol_client_new(devnet_url);
+    // SolClient *client = test_sol_client_new(devnet_url);
 
-    test_sol_airdrop();
+    // test_sol_airdrop();
 
-    test_create_spl_token();
+    // test_create_spl_token();
 
-    test_mint_spl_token();
-    test_mint_spl_token();
+    // test_mint_spl_token();
+    // test_mint_spl_token();
 
-    test_transfer_spl_token();
+    // test_transfer_spl_token();
 
-    test_transfer_sol();
+    // test_transfer_sol();
 
-    test_get_all_tokens();
+    // test_get_all_tokens();
+
+    const char *rpc_url = "https://api.devnet.solana.com";
+    const char *payer_path = file_path;
+    const char *program_id = "DsfPR2teuRS9ABmqGqq5NobD8Y9A9KvzMVNVzsjSP8Dy";
+    const char *account_pubkey = "YourAccountPublicKeyHere";
+
+    SolClient *client = new_sol_client(rpc_url);
+    SolKeyPair *payer = load_wallet_from_file(payer_path);
+    SolKeyPair *account = new_keypair();
+
+    initialize_account_c(client, payer, account, program_id);
+
+    char *result = send_transaction_c(
+        client,
+        payer,
+        program_id,
+        "increment",
+        &account->pubkey);
+
+    printf("Transaction Result: %s\n", result);
+    free(result);
+
+    free_client(client);
+    free_payer(payer);
+
+    return 0;
 
     return 0;
 }

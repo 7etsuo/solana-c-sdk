@@ -5,15 +5,14 @@
 
 typedef struct SolClient SolClient;
 
-typedef struct SolKeyPair SolKeyPair;
-
 typedef struct SolPublicKey {
   uint8_t data[32];
 } SolPublicKey;
 
-typedef struct SolSecretKey {
-  uint8_t data[64];
-} SolSecretKey;
+typedef struct SolKeyPair {
+  uint8_t bytes[64];
+  struct SolPublicKey pubkey;
+} SolKeyPair;
 
 typedef struct TokenInfo {
   const char *mint;
@@ -34,21 +33,30 @@ typedef struct SolMint {
   struct SolPublicKey *freeze_authority;
 } SolMint;
 
-struct SolPublicKey *get_public_key(struct SolKeyPair *wallet);
-
-struct SolSecretKey *get_secret_key(struct SolKeyPair *wallet);
-
-char *get_wallet_address(struct SolKeyPair *wallet);
-
-struct SolKeyPair *create_and_save_wallet(const char *file_path);
-
-struct SolKeyPair *load_wallet_from_file(const char *file_path);
+typedef struct SolSecretKey {
+  uint8_t data[64];
+} SolSecretKey;
 
 struct SolClient *new_sol_client(const char *url);
 
 uint64_t get_balance(struct SolClient *client, struct SolPublicKey *pubkey);
 
 bool request_airdrop(struct SolClient *client, struct SolPublicKey *pubkey, uint64_t lamports);
+
+char *send_transaction_c(struct SolClient *client,
+                         struct SolKeyPair *payer,
+                         const char *program_id,
+                         const char *method_name,
+                         struct SolPublicKey *account_pubkey);
+
+void initialize_account_c(struct SolClient *client,
+                          struct SolKeyPair *payer,
+                          struct SolKeyPair *account,
+                          const char *program_id);
+
+void free_client(struct SolClient *client);
+
+void free_payer(struct SolKeyPair *payer);
 
 struct TokenList *get_all_tokens(struct SolClient *client, struct SolPublicKey *wallet);
 
@@ -89,3 +97,15 @@ bool mint_spl(struct SolClient *client,
 uint64_t get_associated_token_balance(struct SolClient *client,
                                       struct SolPublicKey *owner,
                                       struct SolKeyPair *mint);
+
+struct SolPublicKey *get_public_key(struct SolKeyPair *wallet);
+
+struct SolSecretKey *get_secret_key(struct SolKeyPair *wallet);
+
+char *get_wallet_address(struct SolKeyPair *wallet);
+
+struct SolKeyPair *create_and_save_wallet(const char *file_path);
+
+struct SolKeyPair *new_keypair(void);
+
+struct SolKeyPair *load_wallet_from_file(const char *file_path);

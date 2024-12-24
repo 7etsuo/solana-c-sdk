@@ -208,8 +208,8 @@ pub extern "C" fn transfer_sol(
     // Step 3: Create and sign the transaction
     let mut transaction = Transaction::new_signed_with_payer(
         &[transfer_instruction],
-        Some(&signer_wallet.keypair.pubkey()), // Fee payer
-        &[&signer_wallet.keypair],             // Required signer
+        Some(&signer_wallet.to_keypair().pubkey()), // Fee payer
+        &[&signer_wallet.to_keypair()],             // Required signer
         recent_blockhash,
     );
 
@@ -266,7 +266,7 @@ pub extern "C" fn transfer_spl(
 
     let sender_pubkey = Pubkey::new_from_array(sender.data);
     let recipient_pubkey = Pubkey::new_from_array(recipient.data);
-    let mint_pubkey = mint.keypair.pubkey();
+    let mint_pubkey = mint.to_keypair().pubkey();
 
     // Step 1: Get or create recipient's associated token account
     let recipient_assoc = match _get_or_create_associated_token_account(
@@ -294,8 +294,8 @@ pub extern "C" fn transfer_spl(
         &spl_token::id(),
         &sender_assoc,
         &recipient_assoc,
-        &signer_wallet.keypair.pubkey(),
-        &[&signer_wallet.keypair.pubkey()],
+        &signer_wallet.to_keypair().pubkey(),
+        &[&signer_wallet.to_keypair().pubkey()],
         amount,
     ) {
         Ok(instruction) => instruction,
@@ -317,8 +317,8 @@ pub extern "C" fn transfer_spl(
     // Step 5: Create and sign the transaction
     let mut transaction = Transaction::new_signed_with_payer(
         &[transfer_instruction],
-        Some(&signer_wallet.keypair.pubkey()), // Fee payer
-        &[&signer_wallet.keypair],             // Required signers
+        Some(&signer_wallet.to_keypair().pubkey()), // Fee payer
+        &[&signer_wallet.to_keypair()],             // Required signers
         recent_blockhash,
     );
 
@@ -375,8 +375,8 @@ pub extern "C" fn create_spl_token(
     };
 
     let create_account_instruction: Instruction = solana_sdk::system_instruction::create_account(
-        &&payer.keypair.pubkey(),
-        &mint.keypair.pubkey(),
+        &&payer.to_keypair().pubkey(),
+        &mint.to_keypair().pubkey(),
         minimum_balance_for_rent_exemption,
         Mint::LEN as u64,
         &spl_token::ID,
@@ -385,8 +385,8 @@ pub extern "C" fn create_spl_token(
     // Create the mint instruction
     let mint_instruction = spl_token::instruction::initialize_mint(
         &spl_token::id(),
-        &mint.keypair.pubkey(),
-        &mint.keypair.pubkey(),
+        &mint.to_keypair().pubkey(),
+        &mint.to_keypair().pubkey(),
         None,
         9, // Decimals
     );
@@ -410,8 +410,8 @@ pub extern "C" fn create_spl_token(
     // Create and sign the transaction
     let mut transaction = Transaction::new_signed_with_payer(
         &[create_account_instruction, mint_instruction],
-        Some(&payer.keypair.pubkey()),
-        &[&mint.keypair, &payer.keypair],
+        Some(&payer.to_keypair().pubkey()),
+        &[&mint.to_keypair(), &payer.to_keypair()],
         recent_blockhash,
     );
 
@@ -438,7 +438,10 @@ pub extern "C" fn get_mint_info(client: *mut SolClient, mint: *mut SolKeyPair) -
         &*mint
     };
 
-    let mint_info = match client.rpc_client.get_account_data(&mint.keypair.pubkey()) {
+    let mint_info = match client
+        .rpc_client
+        .get_account_data(&mint.to_keypair().pubkey())
+    {
         Ok(data) => data,
         Err(_) => return std::ptr::null_mut(),
     };
@@ -496,7 +499,7 @@ pub extern "C" fn get_or_create_associated_token_account(
 
     // Extract public keys
     let owner_pubkey = Pubkey::new_from_array(owner.data);
-    let mint_pubkey = mint.keypair.pubkey();
+    let mint_pubkey = mint.to_keypair().pubkey();
 
     // Call the helper function to get or create the associated token account
     match _get_or_create_associated_token_account(client, payer, &owner_pubkey, &mint_pubkey) {
@@ -535,7 +538,7 @@ pub fn _get_or_create_associated_token_account(
             println!("Associated token account does not exist. Proceeding to create...");
             let assoc_instruction =
                 spl_associated_token_account::instruction::create_associated_token_account(
-                    &signer_wallet.keypair.pubkey(),
+                    &signer_wallet.to_keypair().pubkey(),
                     recipient_pubkey,
                     mint_pubkey,
                     &spl_token::id(),
@@ -548,8 +551,8 @@ pub fn _get_or_create_associated_token_account(
 
             let mut assoc_transaction = Transaction::new_signed_with_payer(
                 &[assoc_instruction],
-                Some(&signer_wallet.keypair.pubkey()),
-                &[&signer_wallet.keypair],
+                Some(&signer_wallet.to_keypair().pubkey()),
+                &[&signer_wallet.to_keypair()],
                 recent_blockhash,
             );
 
@@ -597,7 +600,7 @@ pub extern "C" fn mint_spl(
         &*recipient
     };
 
-    let mint_authority_pubkey = mint_authority.keypair.pubkey();
+    let mint_authority_pubkey = mint_authority.to_keypair().pubkey();
     let recipient_pubkey = Pubkey::new_from_array(recipient.data);
 
     // Get or create associated token account
@@ -619,8 +622,8 @@ pub extern "C" fn mint_spl(
         &spl_token::id(),
         &mint_authority_pubkey,
         &assoc,
-        &mint_authority.keypair.pubkey(),
-        &[&mint_authority.keypair.pubkey()],
+        &mint_authority.to_keypair().pubkey(),
+        &[&mint_authority.to_keypair().pubkey()],
         amount,
     ) {
         Ok(instruction) => instruction,
@@ -642,8 +645,8 @@ pub extern "C" fn mint_spl(
     // Step 5: Create and sign the mint transaction
     let mut transaction = Transaction::new_signed_with_payer(
         &[mint_instruction],
-        Some(&signer_wallet.keypair.pubkey()), // Fee payer
-        &[&mint_authority.keypair, &signer_wallet.keypair], // Required signers
+        Some(&signer_wallet.to_keypair().pubkey()), // Fee payer
+        &[&mint_authority.to_keypair(), &signer_wallet.to_keypair()], // Required signers
         recent_blockhash,
     );
 
@@ -683,7 +686,7 @@ pub extern "C" fn get_associated_token_balance(
     };
 
     let owner_pubkey = Pubkey::new_from_array(owner.data);
-    let mint_pubkey = mint.keypair.pubkey();
+    let mint_pubkey = mint.to_keypair().pubkey();
 
     let assoc =
         spl_associated_token_account::get_associated_token_address(&owner_pubkey, &mint_pubkey);
