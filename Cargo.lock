@@ -3431,6 +3431,7 @@ dependencies = [
  "shellexpand",
  "solana-account-decoder",
  "solana-client",
+ "solana-program 2.0.18",
  "solana-sdk",
  "spl-associated-token-account 5.0.1",
  "spl-token",
