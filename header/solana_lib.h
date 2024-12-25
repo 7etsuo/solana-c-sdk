@@ -45,11 +45,14 @@ bool request_airdrop(struct SolClient *client, struct SolPublicKey *pubkey, uint
 
 uint64_t get_account_value_c(struct SolClient *client, struct SolPublicKey *account_pubkey);
 
-char *send_transaction_c(struct SolClient *client,
-                         struct SolKeyPair *payer,
-                         const char *program_id,
-                         const char *method_name,
-                         struct SolPublicKey *account_pubkey);
+char *send_generic_transaction_c(struct SolClient *client,
+                                 struct SolKeyPair *payer,
+                                 const char *program_id,
+                                 const char *method_name,
+                                 const struct SolPublicKey *account_pubkeys,
+                                 uintptr_t account_count,
+                                 const uint8_t *data_ptr,
+                                 uintptr_t data_len);
 
 void initialize_account_c(struct SolClient *client,
                           struct SolKeyPair *payer,

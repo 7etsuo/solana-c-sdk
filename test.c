@@ -379,29 +379,24 @@ int main()
 
     initialize_account_c(client, payer, account, program_id);
 
-    char *result = send_transaction_c(
+    SolPublicKey accounts[1];
+    accounts[0] = account->pubkey;
+
+    // Increment Method Call (with empty data payload)
+    char *result = send_generic_transaction_c(
         client,
         payer,
         program_id,
         "increment",
-        &account->pubkey);
-
-    printf("Transaction Result: %s\n", result);
+        accounts,
+        1,
+        NULL,
+        0);
+    printf("Increment Result: %s\n", result);
 
     int64_t account_value = get_account_value_c(client, &account->pubkey);
     printf("🔢 Account Value (Counter): %lu\n", account_value);
 
-    result = send_transaction_c(
-        client,
-        payer,
-        program_id,
-        "decrement",
-        &account->pubkey);
-
-    printf("Transaction Result: %s\n", result);
-
-    account_value = get_account_value_c(client, &account->pubkey);
-    printf("🔢 Account Value (Counter): %lu\n", account_value);
     free(result);
 
     free_client(client);

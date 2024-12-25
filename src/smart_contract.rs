@@ -66,22 +66,29 @@ fn create_instruction(
     program_id: &str,
     method_name: &str,
     accounts: Vec<AccountMeta>,
+    data: Vec<u8>,
 ) -> Instruction {
     let discriminator = get_discriminator(method_name);
+    let mut instruction_data = discriminator;
+    instruction_data.extend(data);
     let program_id = Pubkey::from_str(program_id).expect("Invalid program ID");
-    Instruction::new_with_bytes(program_id, &discriminator, accounts)
+
+    Instruction::new_with_bytes(program_id, &instruction_data, accounts)
 }
 
 // ==================== Transaction Functions ==================== //
 
-// Send Transaction
+
 #[no_mangle]
-pub extern "C" fn send_transaction_c(
+pub extern "C" fn send_generic_transaction_c(
     client: *mut SolClient,
     payer: *mut SolKeyPair,
     program_id: *const c_char,
     method_name: *const c_char,
-    account_pubkey: *mut SolPublicKey,
+    account_pubkeys: *const SolPublicKey,
+    account_count: usize,
+    data_ptr: *const u8,
+    data_len: usize,
 ) -> *mut c_char {
     let client = unsafe { &mut *client };
     let payer = unsafe { &mut *payer };
@@ -89,22 +96,32 @@ pub extern "C" fn send_transaction_c(
     let program_id = unsafe { CStr::from_ptr(program_id).to_str().unwrap() };
     let method_name = unsafe { CStr::from_ptr(method_name).to_str().unwrap() };
 
-    // Handle pubkey parsing safely
-    let pubkey = unsafe { (*account_pubkey).to_pubkey() };
+    // Deserialize account pubkeys
+    let mut accounts = unsafe {
+        std::slice::from_raw_parts(account_pubkeys, account_count)
+            .iter()
+            .map(|a| AccountMeta::new(a.to_pubkey(), false))
+            .collect::<Vec<AccountMeta>>()
+    };
 
-    let instruction = create_instruction(
-        program_id,
-        method_name,
-        vec![
-            AccountMeta::new(pubkey, false),
-            AccountMeta::new_readonly(payer.to_keypair().pubkey(), true),
-        ],
-    );
+    // Ensure the payer is included as a signer
+    let payer_meta = AccountMeta::new(payer.get_pubkey(), true);
+    accounts.insert(1, payer_meta); // Insert as second item (index 1)
+
+    // Deserialize additional data if provided
+    let data = if data_ptr.is_null() {
+        vec![]
+    } else {
+        unsafe { std::slice::from_raw_parts(data_ptr, data_len).to_vec() }
+    };
+
+    // Create the transaction instruction
+    let instruction = create_instruction(program_id, method_name, accounts, data);
 
     let blockhash = match client.rpc_client.get_latest_blockhash() {
         Ok(bh) => bh,
         Err(e) => {
-            eprintln!("❌ Failed to fetch blockhash: {:?}", e);
+            eprintln!("Failed to get blockhash: {:?}", e);
             return CString::new("Failed to fetch blockhash")
                 .unwrap()
                 .into_raw();
@@ -119,14 +136,12 @@ pub extern "C" fn send_transaction_c(
     );
 
     let result = client.rpc_client.send_and_confirm_transaction(&transaction);
+
     match result {
         Ok(sig) => CString::new(sig.to_string()).unwrap().into_raw(),
-        Err(err) => {
-            eprintln!("❌ Transaction failed: {:?}", err);
-            CString::new(format!("Transaction failed: {:?}", err))
-                .unwrap()
-                .into_raw()
-        }
+        Err(err) => CString::new(format!("Transaction failed: {:?}", err))
+            .unwrap()
+            .into_raw(),
     }
 }
 
@@ -152,6 +167,7 @@ pub extern "C" fn initialize_account_c(
             AccountMeta::new(payer.to_keypair().pubkey(), true),
             AccountMeta::new_readonly(system_program::ID, false),
         ],
+        vec![],
     );
 
     let blockhash = match client.rpc_client.get_latest_blockhash() {
