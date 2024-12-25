@@ -25,6 +25,13 @@ pub struct Counter {
     pub count: u64,
 }
 
+#[no_mangle]
+pub extern "C" fn get_system_program_id() -> SolPublicKey {
+    SolPublicKey {
+        data: system_program::ID.to_bytes(),
+    }
+}
+
 // Fetch Account Value (Counter) by Public Key
 #[no_mangle]
 pub extern "C" fn get_account_value_c(

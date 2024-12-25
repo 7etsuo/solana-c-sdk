@@ -43,6 +43,8 @@ uint64_t get_balance(struct SolClient *client, struct SolPublicKey *pubkey);
 
 bool request_airdrop(struct SolClient *client, struct SolPublicKey *pubkey, uint64_t lamports);
 
+struct SolPublicKey get_system_program_id(void);
+
 uint64_t get_account_value_c(struct SolClient *client, struct SolPublicKey *account_pubkey);
 
 char *send_generic_transaction_c(struct SolClient *client,

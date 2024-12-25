@@ -376,9 +376,8 @@ int main()
     SolClient *client = new_sol_client(rpc_url);
     SolKeyPair *payer = load_wallet_from_file(payer_path);
     SolKeyPair *account = new_keypair();
-    const SolPublicKey SYSTEM_PROGRAM_ID = {
-        .data = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
+
+    SolPublicKey SYSTEM_PROGRAM_ID = get_system_program_id();
 
     const char *initialize_method = "initialize";
 
