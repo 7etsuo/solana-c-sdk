@@ -341,36 +341,37 @@ void test_get_all_tokens()
     printf("=== End Test: Get All Tokens ===\n");
 }
 
+void test()
+{
+    test_create_and_save_wallet(file_path_recipient2);
+    test_load_wallet_from_file(file_path);
+
+    test_create_and_save_mint_wallet();
+
+    test_create_and_save_recipient_wallet();
+
+    SolClient *client = test_sol_client_new(devnet_url);
+
+    test_sol_airdrop();
+
+    test_create_spl_token();
+
+    test_mint_spl_token();
+    test_mint_spl_token();
+
+    test_transfer_spl_token();
+
+    test_transfer_sol();
+
+    test_get_all_tokens();
+}
+
 int main()
 {
-    // Create and save the wallet
-    // test_create_and_save_wallet(file_path_recipient2);
-    // Load and verify the wallet
-    // test_load_wallet_from_file(file_path);
-
-    // test_create_and_save_mint_wallet();
-
-    // // test_create_and_save_recipient_wallet();
-
-    // SolClient *client = test_sol_client_new(devnet_url);
-
-    // test_sol_airdrop();
-
-    // test_create_spl_token();
-
-    // test_mint_spl_token();
-    // test_mint_spl_token();
-
-    // test_transfer_spl_token();
-
-    // test_transfer_sol();
-
-    // test_get_all_tokens();
-
+    // test();
     const char *rpc_url = "https://api.devnet.solana.com";
     const char *payer_path = file_path;
     const char *program_id = "DsfPR2teuRS9ABmqGqq5NobD8Y9A9KvzMVNVzsjSP8Dy";
-    const char *account_pubkey = "YourAccountPublicKeyHere";
 
     SolClient *client = new_sol_client(rpc_url);
     SolKeyPair *payer = load_wallet_from_file(payer_path);
@@ -386,12 +387,25 @@ int main()
         &account->pubkey);
 
     printf("Transaction Result: %s\n", result);
+
+    int64_t account_value = get_account_value_c(client, &account->pubkey);
+    printf("🔢 Account Value (Counter): %lu\n", account_value);
+
+    result = send_transaction_c(
+        client,
+        payer,
+        program_id,
+        "decrement",
+        &account->pubkey);
+
+    printf("Transaction Result: %s\n", result);
+
+    account_value = get_account_value_c(client, &account->pubkey);
+    printf("🔢 Account Value (Counter): %lu\n", account_value);
     free(result);
 
     free_client(client);
     free_payer(payer);
-
-    return 0;
 
     return 0;
 }

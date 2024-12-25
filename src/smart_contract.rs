@@ -20,7 +20,38 @@ use crate::{
 };
 
 // ==================== Utility Functions ==================== //
+#[derive(BorshDeserialize, BorshSerialize, Debug)]
+pub struct Counter {
+    pub count: u64,
+}
 
+// Fetch Account Value (Counter) by Public Key
+#[no_mangle]
+pub extern "C" fn get_account_value_c(
+    client: *mut SolClient,
+    account_pubkey: *mut SolPublicKey,
+) -> u64 {
+    let client = unsafe { &mut *client };
+    let pubkey = Pubkey::new_from_array(unsafe { (*account_pubkey).data });
+
+    // Fetch account data from Solana
+    match client.rpc_client.get_account(&pubkey) {
+        Ok(account) => {
+            // Deserialize account data
+            if let Ok(counter) = Counter::try_from_slice(&account.data[8..]) {
+                println!("🔢 Account Value: {}", counter.count);
+                return counter.count;
+            } else {
+                eprintln!("❌ Failed to deserialize account data.");
+                return 0;
+            }
+        }
+        Err(err) => {
+            eprintln!("❌ Failed to fetch account: {:?}", err);
+            return 0;
+        }
+    }
+}
 // Load Payer Keypair
 
 // Compute Discriminator

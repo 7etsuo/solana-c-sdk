@@ -6,7 +6,6 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::os::raw::c_char;
 #[repr(C)]
-#[repr(C)]
 pub struct SolKeyPair {
     pub bytes: [u8; 64], // Store the keypair as raw bytes
     pub pubkey: SolPublicKey,
