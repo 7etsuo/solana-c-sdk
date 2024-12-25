@@ -376,31 +376,59 @@ int main()
     SolClient *client = new_sol_client(rpc_url);
     SolKeyPair *payer = load_wallet_from_file(payer_path);
     SolKeyPair *account = new_keypair();
+    const SolPublicKey SYSTEM_PROGRAM_ID = {
+        .data = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
-    initialize_account_c(client, payer, account, program_id);
+    const char *initialize_method = "initialize";
 
-    SolPublicKey accounts[1];
-    accounts[0] = account->pubkey;
+    SolPublicKey initialize_accounts[3];
+    initialize_accounts[0] = account->pubkey;
+    initialize_accounts[1] = payer->pubkey;
+    initialize_accounts[2] = SYSTEM_PROGRAM_ID;
+    SolKeyPair *initialize_signers[2];
+    initialize_signers[0] = payer;
+    initialize_signers[1] = account;
 
-    // Increment Method Call (with empty data payload)
-    char *result = send_generic_transaction_c(
+    char *initialize_result = send_generic_transaction_c(
         client,
-        payer,
         program_id,
-        "increment",
-        accounts,
+        initialize_method,
+        initialize_accounts,
+        3,
+        initialize_signers,
+        2,
+        NULL,
+        0);
+
+    printf("initialize Result: %s\n", initialize_result);
+
+    // Step 5: Call Increment on the initialized account
+    const char *increment_method = "increment";
+
+    SolPublicKey increment_accounts[2];
+    increment_accounts[0] = account->pubkey;
+    increment_accounts[1] = payer->pubkey;
+
+    SolKeyPair *increment_signers[1];
+    increment_signers[0] = payer;
+
+    char *increment_result = send_generic_transaction_c(
+        client,
+        program_id,
+        increment_method,
+        increment_accounts,
+        2,
+        increment_signers,
         1,
         NULL,
         0);
-    printf("Increment Result: %s\n", result);
 
-    int64_t account_value = get_account_value_c(client, &account->pubkey);
+    printf("Increment Result: %s\n", increment_result);
+
+    // Step 6: Fetch and print the account value after increment
+    uint64_t account_value = get_account_value_c(client, &account->pubkey);
     printf("🔢 Account Value (Counter): %lu\n", account_value);
-
-    free(result);
-
-    free_client(client);
-    free_payer(payer);
 
     return 0;
 }

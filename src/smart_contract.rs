@@ -78,20 +78,19 @@ fn create_instruction(
 
 // ==================== Transaction Functions ==================== //
 
-
 #[no_mangle]
 pub extern "C" fn send_generic_transaction_c(
     client: *mut SolClient,
-    payer: *mut SolKeyPair,
     program_id: *const c_char,
     method_name: *const c_char,
     account_pubkeys: *const SolPublicKey,
     account_count: usize,
+    signers: *const *mut SolKeyPair, // List of signers
+    signer_count: usize,
     data_ptr: *const u8,
     data_len: usize,
 ) -> *mut c_char {
     let client = unsafe { &mut *client };
-    let payer = unsafe { &mut *payer };
 
     let program_id = unsafe { CStr::from_ptr(program_id).to_str().unwrap() };
     let method_name = unsafe { CStr::from_ptr(method_name).to_str().unwrap() };
@@ -100,13 +99,31 @@ pub extern "C" fn send_generic_transaction_c(
     let mut accounts = unsafe {
         std::slice::from_raw_parts(account_pubkeys, account_count)
             .iter()
-            .map(|a| AccountMeta::new(a.to_pubkey(), false))
+            .map(|a| AccountMeta::new(a.to_pubkey(), false)) // Default signer = false
             .collect::<Vec<AccountMeta>>()
     };
 
-    // Ensure the payer is included as a signer
-    let payer_meta = AccountMeta::new(payer.get_pubkey(), true);
-    accounts.insert(1, payer_meta); // Insert as second item (index 1)
+    // Process signers
+    let signer_refs = unsafe {
+        std::slice::from_raw_parts(signers, signer_count)
+            .iter()
+            .map(|s| unsafe { &**s }) // Dereference raw pointers to SolKeyPair
+            .collect::<Vec<&SolKeyPair>>()
+    };
+
+    let payer = signer_refs
+        .first()
+        .expect("At least one signer (payer) required"); // Ensure the first signer is the payer
+
+    // Mark signer accounts as signers
+    for signer in &signer_refs {
+        if let Some(account) = accounts
+            .iter_mut()
+            .find(|acc| acc.pubkey == signer.get_pubkey())
+        {
+            account.is_signer = true;
+        }
+    }
 
     // Deserialize additional data if provided
     let data = if data_ptr.is_null() {
@@ -118,6 +135,7 @@ pub extern "C" fn send_generic_transaction_c(
     // Create the transaction instruction
     let instruction = create_instruction(program_id, method_name, accounts, data);
 
+    // Get latest blockhash
     let blockhash = match client.rpc_client.get_latest_blockhash() {
         Ok(bh) => bh,
         Err(e) => {
@@ -128,10 +146,15 @@ pub extern "C" fn send_generic_transaction_c(
         }
     };
 
+    // Convert signers to Keypair list
+    let signer_keypairs: Vec<Keypair> = signer_refs.iter().map(|s| s.to_keypair()).collect();
+
+    let signer_refs: Vec<&Keypair> = signer_keypairs.iter().collect();
+
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
-        Some(&payer.to_keypair().pubkey()),
-        &[&payer.to_keypair()],
+        Some(&payer.get_pubkey()), // Payer must be the first signer
+        &signer_refs,
         blockhash,
     );
 
