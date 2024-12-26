@@ -425,9 +425,50 @@ int main()
 
     printf("Increment Result: %s\n", increment_result);
 
-    // Step 6: Fetch and print the account value after increment
-    uint64_t account_value = get_account_value_c(client, &account->pubkey);
-    printf("🔢 Account Value (Counter): %lu\n", account_value);
+    uint8_t account_data[256]; // Buffer to hold account data
+    size_t data_offset = 8;    // Skip discriminator (for Anchor programs)
+    size_t bytes_copied = get_account_data_c(client, &account->pubkey, account_data, sizeof(account_data), data_offset);
+
+    if (bytes_copied > 0)
+    {
+        printf("✅ Data Copied: %zu bytes\n", bytes_copied);
+        // Example: Deserialize the first 8 bytes into u64
+        uint64_t *counter = (uint64_t *)account_data;
+        printf("🔢 Counter Value: %lu\n", *counter);
+    }
+    else
+    {
+        printf("❌ Failed to fetch account data.\n");
+    }
+
+    increment_result = send_generic_transaction_c(
+        client,
+        program_id,
+        increment_method,
+        increment_accounts,
+        2,
+        increment_signers,
+        1,
+        NULL,
+        0);
+
+    printf("Increment Result: %s\n", increment_result);
+
+    account_data[256]; // Buffer to hold account data
+    data_offset = 8;   // Skip discriminator (for Anchor programs)
+    bytes_copied = get_account_data_c(client, &account->pubkey, account_data, sizeof(account_data), data_offset);
+
+    if (bytes_copied > 0)
+    {
+        printf("✅ Data Copied: %zu bytes\n", bytes_copied);
+        // Example: Deserialize the first 8 bytes into u64
+        uint64_t *counter = (uint64_t *)account_data;
+        printf("🔢 Counter Value: %lu\n", *counter);
+    }
+    else
+    {
+        printf("❌ Failed to fetch account data.\n");
+    }
 
     return 0;
 }

@@ -20,10 +20,6 @@ use crate::{
 };
 
 // ==================== Utility Functions ==================== //
-#[derive(BorshDeserialize, BorshSerialize, Debug)]
-pub struct Counter {
-    pub count: u64,
-}
 
 #[no_mangle]
 pub extern "C" fn get_system_program_id() -> SolPublicKey {
@@ -32,33 +28,44 @@ pub extern "C" fn get_system_program_id() -> SolPublicKey {
     }
 }
 
-// Fetch Account Value (Counter) by Public Key
 #[no_mangle]
-pub extern "C" fn get_account_value_c(
+pub extern "C" fn get_account_data_c(
     client: *mut SolClient,
     account_pubkey: *mut SolPublicKey,
-) -> u64 {
+    data_ptr: *mut u8,
+    data_len: usize,
+    data_offset: usize, // Offset for skipping metadata/discriminator
+) -> usize {
     let client = unsafe { &mut *client };
     let pubkey = Pubkey::new_from_array(unsafe { (*account_pubkey).data });
 
     // Fetch account data from Solana
     match client.rpc_client.get_account(&pubkey) {
         Ok(account) => {
-            // Deserialize account data
-            if let Ok(counter) = Counter::try_from_slice(&account.data[8..]) {
-                println!("🔢 Account Value: {}", counter.count);
-                return counter.count;
-            } else {
-                eprintln!("❌ Failed to deserialize account data.");
+            let account_data = &account.data;
+            if account_data.len() <= data_offset {
+                eprintln!("❌ Account data too small.");
                 return 0;
             }
+
+            let data_slice = &account_data[data_offset..];
+            let copy_len = std::cmp::min(data_len, data_slice.len());
+
+            // Copy data into provided buffer
+            unsafe {
+                std::ptr::copy_nonoverlapping(data_slice.as_ptr(), data_ptr, copy_len);
+            }
+
+            println!("✅ Account data fetched ({} bytes).", copy_len);
+            copy_len
         }
         Err(err) => {
             eprintln!("❌ Failed to fetch account: {:?}", err);
-            return 0;
+            0
         }
     }
 }
+
 // Load Payer Keypair
 
 // Compute Discriminator

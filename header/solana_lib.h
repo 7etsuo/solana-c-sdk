@@ -45,7 +45,11 @@ bool request_airdrop(struct SolClient *client, struct SolPublicKey *pubkey, uint
 
 struct SolPublicKey get_system_program_id(void);
 
-uint64_t get_account_value_c(struct SolClient *client, struct SolPublicKey *account_pubkey);
+uintptr_t get_account_data_c(struct SolClient *client,
+                             struct SolPublicKey *account_pubkey,
+                             uint8_t *data_ptr,
+                             uintptr_t data_len,
+                             uintptr_t data_offset);
 
 char *send_generic_transaction_c(struct SolClient *client,
                                  const char *program_id,
