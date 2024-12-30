@@ -1,4 +1,4 @@
-// Auto-generated C interface for Solana Program: anchor_counter
+// Auto-generated C interface for Solana Program: counter
 
 #include <stdio.h>
 #include <stdint.h>
@@ -6,7 +6,7 @@
 #include "solana_sdk.h"
 
 // Function to call 'decrement' dynamically
-char *anchor_counter_decrement_c(SolClient *client, const char *program_id, SolPublicKey *accounts, size_t account_count, SolKeyPair **signers, size_t signer_count) {
+char *counter_decrement_c(SolClient *client, const char *program_id, SolPublicKey *accounts, size_t account_count, SolKeyPair **signers, size_t signer_count) {
     return send_generic_transaction_c(
         client,
         program_id,
@@ -20,7 +20,7 @@ char *anchor_counter_decrement_c(SolClient *client, const char *program_id, SolP
 }
 
 // Function to call 'increment' dynamically
-char *anchor_counter_increment_c(SolClient *client, const char *program_id, SolPublicKey *accounts, size_t account_count, SolKeyPair **signers, size_t signer_count) {
+char *counter_increment_c(SolClient *client, const char *program_id, SolPublicKey *accounts, size_t account_count, SolKeyPair **signers, size_t signer_count) {
     return send_generic_transaction_c(
         client,
         program_id,
@@ -34,7 +34,7 @@ char *anchor_counter_increment_c(SolClient *client, const char *program_id, SolP
 }
 
 // Function to call 'initialize' dynamically
-char *anchor_counter_initialize_c(SolClient *client, const char *program_id, SolPublicKey *accounts, size_t account_count, SolKeyPair **signers, size_t signer_count) {
+char *counter_initialize_c(SolClient *client, const char *program_id, SolPublicKey *accounts, size_t account_count, SolKeyPair **signers, size_t signer_count) {
     return send_generic_transaction_c(
         client,
         program_id,

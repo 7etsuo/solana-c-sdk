@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "header/anchor_counter_interface.c"
+#include "header/counter_interface.c"
 
 const char *file_path = "wallet_keypair.json";
 const char *file_path_payer = "wallet_keypair.json";
@@ -371,7 +371,7 @@ int main()
     // RPC URL and paths
     const char *rpc_url = "https://api.devnet.solana.com";
     const char *payer_path = file_path;
-    const char *program_id = "DsfPR2teuRS9ABmqGqq5NobD8Y9A9KvzMVNVzsjSP8Dy";
+    const char *program_id = "3CkKwWzHTvwnAURu8TD4JijeuYZkaPkU14QRGeGLHbSw";
 
     // Initialize Solana client and wallet
     SolClient *client = new_sol_client(rpc_url);
@@ -382,7 +382,6 @@ int main()
     SolPublicKey SYSTEM_PROGRAM_ID = get_system_program_id();
 
     // Prepare to initialize account
-    const char *initialize_method = "initialize";
     SolPublicKey initialize_accounts[3] = {
         account->pubkey,
         payer->pubkey,
@@ -391,7 +390,7 @@ int main()
     SolKeyPair *initialize_signers[2] = {payer, account};
 
     // Call initialize
-    char *initialize_result = anchor_counter_initialize_c(
+    char *initialize_result = counter_initialize_c(
         client,
         program_id,
         initialize_accounts,
@@ -410,7 +409,6 @@ int main()
     }
 
     // Call increment method
-    const char *increment_method = "increment";
     SolPublicKey increment_accounts[2] = {
         account->pubkey,
         payer->pubkey};
@@ -419,7 +417,7 @@ int main()
 
     for (int i = 0; i < 2; i++) // Run increment twice
     {
-        char *increment_result = anchor_counter_increment_c(
+        char *increment_result = counter_increment_c(
             client,
             program_id,
             increment_accounts,

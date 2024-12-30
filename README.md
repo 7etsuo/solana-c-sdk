@@ -3,4 +3,4 @@ Run
 ```sh build.sh``` to test
 
 Run
-``` sh generate.sh anchor_counter.json``` to generate inteface from anchor_counter.json
+``` sh generate.sh counter.json``` to generate inteface from counter.json
