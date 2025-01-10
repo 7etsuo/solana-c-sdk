@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "header/counter_interface.c"
+#include "header/anchor_counter_interface.c"
 
 const char *file_path = "wallet_keypair.json";
 const char *file_path_payer = "wallet_keypair.json";
@@ -13,14 +13,21 @@ SolKeyPair *test_create_and_save_wallet(const char *file_path)
 {
     printf("=== Test: Create and Save Wallet ===\n");
     SolKeyPair *wallet = create_and_save_wallet(file_path);
+
+    // Check if the wallet loading succeeded
     if (wallet != NULL)
     {
+        SolPublicKey *pub = get_public_key(wallet);
         printf("Wallet created and saved successfully.\n");
-        printf("Wallet Address: %s\n", get_wallet_address(wallet));
+
+        // Print the loaded public key
+        printf("Loaded Solana Wallet Public Key: %s\n", pub->data);
+        // Print the wallet address
+        printf("Loaded Solana Wallet Address: %s\n", get_wallet_address(wallet));
     }
     else
     {
-        printf("Failed to create wallet.\n");
+        printf("Failed to load wallet.\n");
     }
     printf("=== End Test: Create and Save Wallet ===\n");
     return wallet;
@@ -341,33 +348,9 @@ void test_get_all_tokens()
     printf("=== End Test: Get All Tokens ===\n");
 }
 
-void test()
+void test_counter()
 {
-    test_create_and_save_wallet(file_path_recipient2);
-    test_load_wallet_from_file(file_path);
-
-    test_create_and_save_mint_wallet();
-
-    test_create_and_save_recipient_wallet();
-
-    SolClient *client = test_sol_client_new(devnet_url);
-
-    test_sol_airdrop();
-
-    test_create_spl_token();
-
-    test_mint_spl_token();
-    test_mint_spl_token();
-
-    test_transfer_spl_token();
-
-    test_transfer_sol();
-
-    test_get_all_tokens();
-}
-
-int main()
-{
+    // Try run test anchor program https://github.com/thanhngoc541/anchor-counter, deploy the project to get program id
     // RPC URL and paths
     const char *rpc_url = "https://api.devnet.solana.com";
     const char *payer_path = file_path;
@@ -390,7 +373,7 @@ int main()
     SolKeyPair *initialize_signers[2] = {payer, account};
 
     // Call initialize
-    char *initialize_result = counter_initialize_c(
+    char *initialize_result = anchor_counter_initialize_c(
         client,
         program_id,
         initialize_accounts,
@@ -415,9 +398,9 @@ int main()
 
     SolKeyPair *increment_signers[1] = {payer};
 
-    for (int i = 0; i < 2; i++) // Run increment twice
+    for (int i = 0; i < 2; i++)
     {
-        char *increment_result = counter_increment_c(
+        char *increment_result = anchor_counter_increment_c(
             client,
             program_id,
             increment_accounts,
@@ -460,6 +443,38 @@ int main()
     // Clean up resources
     free_client(client);
     free_payer(payer);
+}
+
+void test()
+{
+    test_create_and_save_wallet(file_path_recipient2);
+    test_load_wallet_from_file(file_path);
+
+    test_create_and_save_mint_wallet();
+
+    test_create_and_save_recipient_wallet();
+
+    SolClient *client = test_sol_client_new(devnet_url);
+
+    test_sol_airdrop();
+
+    test_create_spl_token();
+
+    test_mint_spl_token();
+    test_mint_spl_token();
+
+    test_transfer_spl_token();
+
+    test_transfer_sol();
+
+    test_get_all_tokens();
+
+    test_counter();
+}
+
+int main()
+{
+    test_create_and_save_wallet("test.json");
 
     return 0;
 }

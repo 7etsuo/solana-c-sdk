@@ -1,3 +1,11 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+#ifndef SOLANA_SDK_H
+#define SOLANA_SDK_H
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -121,3 +129,9 @@ struct SolKeyPair *create_and_save_wallet(const char *file_path);
 struct SolKeyPair *new_keypair(void);
 
 struct SolKeyPair *load_wallet_from_file(const char *file_path);
+
+#endif  /* SOLANA_SDK_H */
+
+#ifdef __cplusplus
+}
+#endif
