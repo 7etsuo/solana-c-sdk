@@ -1,3 +1,4 @@
-mod wallet;
 mod client;
-mod transaction;
+mod smart_contract;
+mod token;
+mod wallet;

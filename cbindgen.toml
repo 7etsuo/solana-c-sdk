@@ -1,4 +1,21 @@
+# cbindgen.toml
+
+# Set the language to C for compatibility
 language = "C"
 
-[parse]
-parse_deps = false
+# Include guard for the header file
+include_guard = "SOLANA_SDK_H"
+
+# Add custom content to the top of the header
+header = """
+#ifdef __cplusplus
+extern "C" {
+#endif
+"""
+
+# Add custom content to the end of the header
+trailer = """
+#ifdef __cplusplus
+}
+#endif
+"""
