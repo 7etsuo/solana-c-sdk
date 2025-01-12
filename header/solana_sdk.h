@@ -87,8 +87,7 @@ uintptr_t token_list_get_len(const struct TokenList *list);
 void free_token_list(struct TokenList *list);
 
 bool transfer_sol(struct SolClient *client,
-                  struct SolKeyPair *signer_wallet,
-                  struct SolPublicKey *sender,
+                  struct SolKeyPair *sender,
                   struct SolPublicKey *recipient,
                   uint64_t lamports);
 

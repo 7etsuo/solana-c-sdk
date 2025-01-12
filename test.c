@@ -262,18 +262,18 @@ void test_transfer_sol()
     SolClient *client = new_sol_client(devnet_url);
     if (client != NULL)
     {
-        SolKeyPair *signer_wallet = load_wallet_from_file(file_path_payer);
+        SolKeyPair *sender = load_wallet_from_file(file_path_payer);
         SolKeyPair *recipient_wallet = load_wallet_from_file(file_path_recipient);
 
-        if (signer_wallet != NULL && recipient_wallet != NULL)
+        if (sender != NULL && recipient_wallet != NULL)
         {
-            SolPublicKey *signer_pubkey = get_public_key(signer_wallet);
+            SolPublicKey *signer_pubkey = get_public_key(sender);
             SolPublicKey *recipient_pubkey = get_public_key(recipient_wallet);
             uint64_t lamports = 1000000; // Transfer 0.001 SOL
 
             printf("Transferring %lu lamports (%.9f SOL) to Wallet Address: %s\n", lamports, lamports / 1e9, get_wallet_address(recipient_wallet));
 
-            bool success = transfer_sol(client, signer_wallet, signer_pubkey, recipient_pubkey, lamports);
+            bool success = transfer_sol(client, sender, recipient_pubkey, lamports);
 
             if (success)
             {

@@ -146,8 +146,7 @@ pub extern "C" fn free_token_list(list: *mut TokenList) {
 #[no_mangle]
 pub extern "C" fn transfer_sol(
     client: *mut SolClient,
-    signer_wallet: *mut SolKeyPair,
-    sender: *mut SolPublicKey,
+    sender: *mut SolKeyPair,
     recipient: *mut SolPublicKey,
     lamports: u64,
 ) -> bool {
@@ -155,11 +154,6 @@ pub extern "C" fn transfer_sol(
     let client = unsafe {
         assert!(!client.is_null());
         &*client
-    };
-
-    let signer_wallet = unsafe {
-        assert!(!signer_wallet.is_null());
-        &*signer_wallet
     };
 
     let sender = unsafe {
@@ -172,7 +166,7 @@ pub extern "C" fn transfer_sol(
         &*recipient
     };
 
-    let sender_pubkey = Pubkey::new_from_array(sender.data);
+    let sender_pubkey = sender.get_pubkey();
     let recipient_pubkey = Pubkey::new_from_array(recipient.data);
 
     // Verify that the sender's account exists
@@ -208,8 +202,8 @@ pub extern "C" fn transfer_sol(
     // Step 3: Create and sign the transaction
     let mut transaction = Transaction::new_signed_with_payer(
         &[transfer_instruction],
-        Some(&signer_wallet.to_keypair().pubkey()), // Fee payer
-        &[&signer_wallet.to_keypair()],             // Required signer
+        Some(&sender.to_keypair().pubkey()), // Fee payer
+        &[&sender.to_keypair()],             // Required signer
         recent_blockhash,
     );
 
