@@ -93,15 +93,14 @@ bool transfer_sol(struct SolClient *client,
                   uint64_t lamports);
 
 bool transfer_spl(struct SolClient *client,
-                  struct SolKeyPair *signer_wallet,
-                  struct SolPublicKey *sender,
+                  struct SolKeyPair *sender,
                   struct SolPublicKey *recipient,
-                  struct SolKeyPair *mint,
+                  struct SolPublicKey *mint,
                   uint64_t amount);
 
 bool create_spl_token(struct SolClient *client, struct SolKeyPair *payer, struct SolKeyPair *mint);
 
-struct SolMint *get_mint_info(struct SolClient *client, struct SolKeyPair *mint);
+struct SolMint *get_mint_info(struct SolClient *client, struct SolPublicKey *mint_pubkey);
 
 struct SolPublicKey *get_or_create_associated_token_account(struct SolClient *client,
                                                             struct SolKeyPair *payer,
@@ -109,14 +108,14 @@ struct SolPublicKey *get_or_create_associated_token_account(struct SolClient *cl
                                                             struct SolKeyPair *mint);
 
 bool mint_spl(struct SolClient *client,
-              struct SolKeyPair *signer_wallet,
+              struct SolKeyPair *payer,
               struct SolKeyPair *mint_authority,
               struct SolPublicKey *recipient,
               uint64_t amount);
 
 uint64_t get_associated_token_balance(struct SolClient *client,
                                       struct SolPublicKey *owner,
-                                      struct SolKeyPair *mint);
+                                      struct SolPublicKey *mint);
 
 struct SolPublicKey *get_public_key(struct SolKeyPair *wallet);
 

@@ -139,7 +139,7 @@ void test_create_spl_token()
                 printf("Failed to create SPL Token.\n");
             }
 
-            SolMint *mint_info = get_mint_info(client, mint);
+            SolMint *mint_info = get_mint_info(client, &mint->pubkey);
             if (mint_info != NULL)
             {
                 printf("Mint Supply: %lu\n", mint_info->supply);
@@ -210,7 +210,7 @@ void test_mint_spl_token()
     if (success)
     {
         // Get the recipient's token balance
-        uint64_t balance = get_associated_token_balance(client, get_public_key(recipient), mint);
+        uint64_t balance = get_associated_token_balance(client, &recipient->pubkey, &mint->pubkey);
         printf("Success: SPL Token minted successfully.\n");
         printf("Recipient Token Balance: %lu\n", balance);
     }
@@ -227,17 +227,16 @@ void test_transfer_spl_token()
     SolClient *client = new_sol_client(devnet_url);
     if (client != NULL)
     {
-        SolKeyPair *signer_wallet = load_wallet_from_file(file_path_payer);
+        SolKeyPair *sender = load_wallet_from_file(file_path_payer);
         SolKeyPair *mint = load_wallet_from_file(file_path_mint);
         SolKeyPair *recipient = load_wallet_from_file(file_path_recipient);
 
-        if (signer_wallet != NULL && mint != NULL && recipient != NULL)
+        if (sender != NULL && mint != NULL && recipient != NULL)
         {
-            SolPublicKey *sender_pubkey = get_public_key(signer_wallet);
             SolPublicKey *recipient_pubkey = get_public_key(recipient);
             uint64_t amount = 500000000; // Transfer 500 tokens
             printf("Solana Token Transfer to  Wallet Address: %s\n", get_wallet_address(recipient));
-            bool success = transfer_spl(client, signer_wallet, sender_pubkey, recipient_pubkey, mint, amount);
+            bool success = transfer_spl(client, sender, recipient_pubkey, &mint->pubkey, amount);
             if (success)
             {
                 printf("SPL Token transferred successfully.\n");
@@ -474,7 +473,7 @@ void test()
 
 int main()
 {
-    test_create_and_save_wallet("test.json");
+    test();
 
     return 0;
 }

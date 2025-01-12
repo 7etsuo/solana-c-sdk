@@ -232,21 +232,15 @@ pub extern "C" fn transfer_sol(
 #[no_mangle]
 pub extern "C" fn transfer_spl(
     client: *mut SolClient,
-    signer_wallet: *mut SolKeyPair,
-    sender: *mut SolPublicKey,
+    sender: *mut SolKeyPair,
     recipient: *mut SolPublicKey,
-    mint: *mut SolKeyPair,
+    mint: *mut SolPublicKey,
     amount: u64,
 ) -> bool {
     // Safety: Ensure pointers are not null
     let client = unsafe {
         assert!(!client.is_null());
         &*client
-    };
-
-    let signer_wallet = unsafe {
-        assert!(!signer_wallet.is_null());
-        &*signer_wallet
     };
 
     let sender = unsafe {
@@ -264,14 +258,14 @@ pub extern "C" fn transfer_spl(
         &*mint
     };
 
-    let sender_pubkey = Pubkey::new_from_array(sender.data);
+    let sender_pubkey = sender.to_keypair().pubkey();
     let recipient_pubkey = Pubkey::new_from_array(recipient.data);
-    let mint_pubkey = mint.to_keypair().pubkey();
+    let mint_pubkey = mint.to_pubkey();
 
     // Step 1: Get or create recipient's associated token account
     let recipient_assoc = match _get_or_create_associated_token_account(
         client,
-        signer_wallet,
+        sender,
         &recipient_pubkey,
         &mint_pubkey,
     ) {
@@ -294,8 +288,8 @@ pub extern "C" fn transfer_spl(
         &spl_token::id(),
         &sender_assoc,
         &recipient_assoc,
-        &signer_wallet.to_keypair().pubkey(),
-        &[&signer_wallet.to_keypair().pubkey()],
+        &sender.to_keypair().pubkey(),
+        &[&sender.to_keypair().pubkey()],
         amount,
     ) {
         Ok(instruction) => instruction,
@@ -317,8 +311,8 @@ pub extern "C" fn transfer_spl(
     // Step 5: Create and sign the transaction
     let mut transaction = Transaction::new_signed_with_payer(
         &[transfer_instruction],
-        Some(&signer_wallet.to_keypair().pubkey()), // Fee payer
-        &[&signer_wallet.to_keypair()],             // Required signers
+        Some(&sender.to_keypair().pubkey()), // Fee payer
+        &[&sender.to_keypair()],             // Required signers
         recent_blockhash,
     );
 
@@ -426,7 +420,10 @@ pub extern "C" fn create_spl_token(
 }
 
 #[no_mangle]
-pub extern "C" fn get_mint_info(client: *mut SolClient, mint: *mut SolKeyPair) -> *mut SolMint {
+pub extern "C" fn get_mint_info(
+    client: *mut SolClient,
+    mint_pubkey: *mut SolPublicKey,
+) -> *mut SolMint {
     // Safety: Ensure the client pointer is not null
     let client = unsafe {
         assert!(!client.is_null());
@@ -434,14 +431,12 @@ pub extern "C" fn get_mint_info(client: *mut SolClient, mint: *mut SolKeyPair) -
     };
 
     let mint = unsafe {
-        assert!(!mint.is_null());
-        &*mint
+        assert!(!mint_pubkey.is_null());
+        &*mint_pubkey
     };
 
-    let mint_info = match client
-        .rpc_client
-        .get_account_data(&mint.to_keypair().pubkey())
-    {
+    let mint_pubkey = mint.to_pubkey();
+    let mint_info = match client.rpc_client.get_account_data(&mint_pubkey) {
         Ok(data) => data,
         Err(_) => return std::ptr::null_mut(),
     };
@@ -515,7 +510,7 @@ pub extern "C" fn get_or_create_associated_token_account(
 
 pub fn _get_or_create_associated_token_account(
     client: &SolClient,
-    signer_wallet: &SolKeyPair,
+    payer: &SolKeyPair,
     recipient_pubkey: &Pubkey,
     mint_pubkey: &Pubkey,
 ) -> Result<Pubkey, String> {
@@ -538,7 +533,7 @@ pub fn _get_or_create_associated_token_account(
             println!("Associated token account does not exist. Proceeding to create...");
             let assoc_instruction =
                 spl_associated_token_account::instruction::create_associated_token_account(
-                    &signer_wallet.to_keypair().pubkey(),
+                    &payer.to_keypair().pubkey(),
                     recipient_pubkey,
                     mint_pubkey,
                     &spl_token::id(),
@@ -551,8 +546,8 @@ pub fn _get_or_create_associated_token_account(
 
             let mut assoc_transaction = Transaction::new_signed_with_payer(
                 &[assoc_instruction],
-                Some(&signer_wallet.to_keypair().pubkey()),
-                &[&signer_wallet.to_keypair()],
+                Some(&payer.to_keypair().pubkey()),
+                &[&payer.to_keypair()],
                 recent_blockhash,
             );
 
@@ -577,7 +572,7 @@ pub fn _get_or_create_associated_token_account(
 #[no_mangle]
 pub extern "C" fn mint_spl(
     client: *mut SolClient,
-    signer_wallet: *mut SolKeyPair,
+    payer: *mut SolKeyPair,
     mint_authority: *mut SolKeyPair,
     recipient: *mut SolPublicKey,
     amount: u64,
@@ -587,9 +582,9 @@ pub extern "C" fn mint_spl(
         assert!(!client.is_null());
         &*client
     };
-    let signer_wallet = unsafe {
-        assert!(!signer_wallet.is_null());
-        &*signer_wallet
+    let payer = unsafe {
+        assert!(!payer.is_null());
+        &*payer
     };
     let mint_authority = unsafe {
         assert!(!mint_authority.is_null());
@@ -606,7 +601,7 @@ pub extern "C" fn mint_spl(
     // Get or create associated token account
     let assoc = match _get_or_create_associated_token_account(
         client,
-        signer_wallet,
+        payer,
         &recipient_pubkey,
         &mint_authority_pubkey,
     ) {
@@ -645,8 +640,8 @@ pub extern "C" fn mint_spl(
     // Step 5: Create and sign the mint transaction
     let mut transaction = Transaction::new_signed_with_payer(
         &[mint_instruction],
-        Some(&signer_wallet.to_keypair().pubkey()), // Fee payer
-        &[&mint_authority.to_keypair(), &signer_wallet.to_keypair()], // Required signers
+        Some(&payer.to_keypair().pubkey()), // Fee payer
+        &[&mint_authority.to_keypair(), &payer.to_keypair()], // Required signers
         recent_blockhash,
     );
 
@@ -667,7 +662,7 @@ pub extern "C" fn mint_spl(
 pub extern "C" fn get_associated_token_balance(
     client: *mut SolClient,
     owner: *mut SolPublicKey,
-    mint: *mut SolKeyPair,
+    mint: *mut SolPublicKey,
 ) -> u64 {
     // Safety: Ensure the client pointer is not null
     let client = unsafe {
@@ -685,8 +680,8 @@ pub extern "C" fn get_associated_token_balance(
         &*mint
     };
 
-    let owner_pubkey = Pubkey::new_from_array(owner.data);
-    let mint_pubkey = mint.to_keypair().pubkey();
+    let owner_pubkey = owner.to_pubkey();
+    let mint_pubkey = mint.to_pubkey();
 
     let assoc =
         spl_associated_token_account::get_associated_token_address(&owner_pubkey, &mint_pubkey);
