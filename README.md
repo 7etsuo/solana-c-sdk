@@ -119,40 +119,93 @@ int main() {
 ### Public Functions
 
 #### Client Management
-- `SolClient *new_sol_client(const char *url);`
+
+- **`SolClient *new_sol_client(const char *url);`**
+  
   Initializes a Solana client for the given RPC URL.
 
-- `void free_client(SolClient *client);`
+- **`void free_client(SolClient *client);`**
+  
   Frees the memory allocated for the client.
 
 #### Wallet Management
-- `SolKeyPair *new_keypair();`
+
+- **`SolKeyPair *new_keypair();`**
+  
   Creates a new wallet (keypair).
 
-- `SolKeyPair *load_wallet_from_file(const char *file_path);`
+- **`SolKeyPair *load_wallet_from_file(const char *file_path);`**
+  
   Loads a wallet from a file.
 
-- `char *get_wallet_address(SolKeyPair *wallet);`
+- **`char *get_wallet_address(SolKeyPair *wallet);`**
+  
   Retrieves the wallet's public address as a string.
 
-- `void free_payer(SolKeyPair *payer);`
+- **`SolPublicKey *get_public_key(SolKeyPair *wallet);`**
+  
+  Retrieves the wallet's public key.
+
+- **`SolSecretKey *get_secret_key(SolKeyPair *wallet);`**
+  
+  Retrieves the wallet's private key.
+
+- **`struct SolPublicKey *get_pubkey_from_address(const char *address);`**
+  
+  Converts an address string to a public key.
+
+- **`char *get_address_from_pubkey(const struct SolPublicKey *pubkey);`**
+  
+  Converts a public key to an address string.
+
+- **`void free_payer(SolKeyPair *payer);`**
+  
   Frees the memory allocated for the wallet.
 
 #### Token Operations
-- `bool transfer_sol(SolClient *client, SolKeyPair *sender, SolPublicKey *recipient, uint64_t lamports);`
+
+- **`bool transfer_sol(SolClient *client, SolKeyPair *sender, SolPublicKey *recipient, uint64_t lamports);`**
+  
   Transfers SOL from the sender to the recipient.
 
-- `bool transfer_spl(SolClient *client, SolKeyPair *sender, SolPublicKey *recipient, SolPublicKey *mint, uint64_t amount);`
+- **`bool transfer_spl(SolClient *client, SolKeyPair *sender, SolPublicKey *recipient, SolPublicKey *mint, uint64_t amount);`**
+  
   Transfers SPL tokens from the sender to the recipient.
 
-- `uint64_t get_associated_token_balance(SolClient *client, SolPublicKey *owner, SolPublicKey *mint);`
+- **`uint64_t get_associated_token_balance(SolClient *client, SolPublicKey *owner, SolPublicKey *mint);`**
+  
   Retrieves the balance of an associated token account.
 
+- **`bool create_spl_token(SolClient *client, SolKeyPair *payer, SolKeyPair *mint);`**
+  
+  Creates a new SPL token.
+
+- **`bool mint_spl(SolClient *client, SolKeyPair *payer, SolKeyPair *mint_authority, SolPublicKey *recipient, uint64_t amount);`**
+  
+  Mints new SPL tokens.
+
+- **`struct SolPublicKey *get_or_create_associated_token_account(SolClient *client, SolKeyPair *payer, SolPublicKey *owner, SolKeyPair *mint);`**
+  
+  Gets or creates an associated token account for the owner and mint.
+
+#### Account Operations
+
+- **`uintptr_t get_account_data_c(struct SolClient *client, struct SolPublicKey *account_pubkey, uint8_t *data_ptr, uintptr_t data_len, uintptr_t data_offset);`**
+  
+  Fetches account data and copies it into a provided buffer.
+
+- **`struct SolMint *get_mint_info(struct SolClient *client, struct SolPublicKey *mint_pubkey);`**
+  
+  Retrieves information about an SPL token mint.
+
 #### Smart Contract Interaction
-- `char *send_generic_transaction_c(SolClient *client, const char *program_id, const char *method_name, const SolPublicKey *account_pubkeys, uintptr_t account_count, SolKeyPair *const *signers, uintptr_t signer_count, const uint8_t *data_ptr, uintptr_t data_len);`
+
+- **`char *send_generic_transaction_c(SolClient *client, const char *program_id, const char *method_name, const SolPublicKey *account_pubkeys, uintptr_t account_count, SolKeyPair *const *signers, uintptr_t signer_count, const uint8_t *data_ptr, uintptr_t data_len);`**
+  
   Sends a generic transaction to a smart contract.
 
-- `void initialize_account_c(SolClient *client, SolKeyPair *payer, SolKeyPair *account, const char *program_id);`
+- **`void initialize_account_c(SolClient *client, SolKeyPair *payer, SolKeyPair *account, const char *program_id);`**
+  
   Initializes an account for a program.
 
 ## License
