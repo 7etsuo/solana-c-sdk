@@ -125,6 +125,106 @@ int main() {
     return 0;
 }
 ```
+### Example: Using generated interface from IDL
+
+```c
+void test_counter()
+{
+    // Try run test anchor program https://github.com/thanhngoc541/anchor-counter, deploy the project to get program id
+    // RPC URL and paths
+    const char *rpc_url = "https://api.devnet.solana.com";
+    const char *payer_path = file_path;
+    const char *program_id = "3CkKwWzHTvwnAURu8TD4JijeuYZkaPkU14QRGeGLHbSw";
+
+    // Initialize Solana client and wallet
+    SolClient *client = new_sol_client(rpc_url);
+    SolKeyPair *payer = load_wallet_from_file(payer_path);
+    SolKeyPair *account = new_keypair();
+
+    // Get system program ID
+    SolPublicKey SYSTEM_PROGRAM_ID = get_system_program_id();
+
+    // Prepare to initialize account
+    SolPublicKey initialize_accounts[3] = {
+        account->pubkey,
+        payer->pubkey,
+        SYSTEM_PROGRAM_ID};
+
+    SolKeyPair *initialize_signers[2] = {payer, account};
+
+    // Call initialize
+    char *initialize_result = anchor_counter_initialize_c(
+        client,
+        program_id,
+        initialize_accounts,
+        3,
+        initialize_signers,
+        2);
+
+    if (initialize_result != NULL)
+    {
+        printf("Initialize Result: %s\n", initialize_result);
+        free(initialize_result);
+    }
+    else
+    {
+        printf("❌ Failed to initialize account.\n");
+    }
+
+    // Call increment method
+    SolPublicKey increment_accounts[2] = {
+        account->pubkey,
+        payer->pubkey};
+
+    SolKeyPair *increment_signers[1] = {payer};
+
+    for (int i = 0; i < 2; i++)
+    {
+        char *increment_result = anchor_counter_increment_c(
+            client,
+            program_id,
+            increment_accounts,
+            2,
+            increment_signers,
+            1);
+
+        if (increment_result != NULL)
+        {
+            printf("Increment Result: %s\n", increment_result);
+            free(increment_result);
+        }
+        else
+        {
+            printf("❌ Failed to increment account.\n");
+        }
+
+        // Fetch and print the updated account value
+        uint8_t account_data[512]; // Larger buffer to handle future expansion
+        size_t data_offset = 8;
+        size_t bytes_copied = get_account_data_c(
+            client,
+            &account->pubkey,
+            account_data,
+            sizeof(account_data),
+            data_offset);
+
+        if (bytes_copied > 0)
+        {
+            printf("✅ Data Copied: %zu bytes\n", bytes_copied);
+            uint64_t *counter = (uint64_t *)account_data;
+            printf("🔢 Counter Value: %lu\n", *counter);
+        }
+        else
+        {
+            printf("❌ Failed to fetch account data.\n");
+        }
+    }
+
+    // Clean up resources
+    free_client(client);
+    free_payer(payer);
+}
+```
 
 ## Documentation
 
