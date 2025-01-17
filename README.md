@@ -19,7 +19,7 @@ This project provides a Rust-based SDK for integrating Solana blockchain functio
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/VAR-META-Tech/solana-c-sdk
+   git clone https://github.com/VAR-META-Tech/solana-c-sdk.git
    cd solana-c-sdk
    ```
 
