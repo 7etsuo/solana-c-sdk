@@ -199,3 +199,44 @@ fn load_wallet(file_path: &str) -> Result<Keypair, std::io::Error> {
 
     Ok(keypair)
 }
+
+#[no_mangle]
+pub extern "C" fn get_pubkey_from_address(address: *const c_char) -> *mut SolPublicKey {
+    let c_str = unsafe {
+        assert!(!address.is_null());
+        CStr::from_ptr(address)
+    };
+
+    let address_str = match c_str.to_str() {
+        Ok(str) => str,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    match Pubkey::try_from(address_str) {
+        Ok(pubkey) => {
+            let public_key = SolPublicKey {
+                data: pubkey.to_bytes(),
+            };
+            Box::into_raw(Box::new(public_key))
+        }
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn get_address_from_pubkey(pubkey: *const SolPublicKey) -> *mut c_char {
+    let pubkey = unsafe {
+        assert!(!pubkey.is_null());
+        &*pubkey
+    };
+
+    let pubkey_array = Pubkey::new_from_array(pubkey.data);
+    let address = pubkey_array.to_string();
+
+    let c_str = match std::ffi::CString::new(address) {
+        Ok(cstring) => cstring,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    c_str.into_raw()
+}

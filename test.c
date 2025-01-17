@@ -333,9 +333,8 @@ void test_get_all_tokens()
         return;
     }
 
-    uintptr_t len = token_list_get_len(tokens);
-    TokenInfo *data = token_list_get_data(tokens);
-
+    uintptr_t len = tokens->len;
+    TokenInfo *data = tokens->data;
     printf("Total Tokens: %lu\n", len);
     for (uintptr_t i = 0; i < len; i++)
     {
