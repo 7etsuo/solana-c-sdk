@@ -37,6 +37,18 @@ This project provides a Rust-based SDK for integrating Solana blockchain functio
    header/solana_sdk.h
    ```
 
+## Generate smart contract interface from IDL file
+
+1. Place the IDL file in source folder (ex: anchor_counter.json)
+   ```bash
+   sh generate.sh anchor_counter.json
+   ```
+
+2. Locate the Generated Interface File:
+   ```bash
+   header/anchor_counter_interface.c
+   ```
+
 ## Using the SDK in C
 
 ### Include the Generated Header File
