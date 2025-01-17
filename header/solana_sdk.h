@@ -128,6 +128,10 @@ struct SolKeyPair *new_keypair(void);
 
 struct SolKeyPair *load_wallet_from_file(const char *file_path);
 
+struct SolPublicKey *get_pubkey_from_address(const char *address);
+
+char *get_address_from_pubkey(const struct SolPublicKey *pubkey);
+
 #endif  /* SOLANA_SDK_H */
 
 #ifdef __cplusplus
