@@ -27,14 +27,10 @@ This project provides a Rust-based SDK for integrating Solana blockchain functio
    ```bash
    sh build.sh
    ```
-
-3. Locate the generated shared library (`.so`, `.dll`, or `.dylib`):
+   
+## Test the Project
    ```bash
-   target/release/libsolana_sdk.so
-   ```
-4. Locate the Generated Header File (`.h`):
-   ```bash
-   header/solana_sdk.h
+   sh test.sh
    ```
 
 ## Generate smart contract interface from IDL file
@@ -319,6 +315,10 @@ void test_counter()
 - **`void initialize_account_c(SolClient *client, SolKeyPair *payer, SolKeyPair *account, const char *program_id);`**
   
   Initializes an account for a program.
+
+## Unreal Plugin
+[UnrealSolSDK](https://github.com/VAR-META-Tech/UnrealSolanaSDK)
+
 
 ## License
 
