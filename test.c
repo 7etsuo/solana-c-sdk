@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "header/anchor_counter_interface.c"
 
 const char *file_path = "wallet_keypair.json";
@@ -472,7 +473,9 @@ void test()
 
 int main()
 {
-    test();
-
+    clock_t start = clock();
+    test_create_and_save_wallet(file_path_recipient2);
+    clock_t end = clock();
+    printf("Execution Time: %f ms\n", ((double)(end - start) / CLOCKS_PER_SEC) * 1000);
     return 0;
 }
