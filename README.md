@@ -341,7 +341,7 @@ This repository benchmarks **Solana wallet operations** using **Rust (FFI via C)
 |-----------------------------------|----------------|------------------|
 | Wallet Creation                   | **0.05 - 1.7 ms**  | 50 - 80 ms        |
 | Wallet Loading                     | **0.05 - 1.7 ms**  | 15 - 20 ms          |
-| Airdrop Request                    | 3000 ms  (The function waits for confirmation)  |       59ms (The function does not wait for confirmation)  |
+| Airdrop Request                    | 0.05 ms (Async) - 3000 ms (Sync)  |       59ms (The function does not wait for confirmation)  |
 | Mint SPL Token                     | **~300 ms** | N/A             |
 | Transfer SPL Token                 | **~280 ms** | N/A             |
 | Transfer SOL                        | **230 - 280 ms**  | 300 - 500 ms      |
