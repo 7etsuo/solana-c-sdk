@@ -340,11 +340,11 @@ This repository benchmarks **Solana wallet operations** using **Rust (FFI via C)
 | **Function**                      | **Rust (FFI via C)** | **C# (Solnet)**  |
 |-----------------------------------|----------------|------------------|
 | Wallet Creation                   | **0.05 - 1.7 ms**  | 50 - 80 ms        |
-| Wallet Loading                     | **0.05 - 1.7 ms**  | 300 - 380 ms          |
+| Wallet Loading                     | **0.05 - 1.7 ms**  | 15 - 20 ms          |
 | Airdrop Request                    | 3000 ms  (The function waits for confirmation)  |       59ms (The function does not wait for confirmation)  |
-| Mint SPL Token                     | **15500 ms**  | N/A             |
-| Transfer SPL Token                 | **19000 ms**  | N/A             |
-| Transfer SOL                        | **13806 ms**  | N/A        |
+| Mint SPL Token                     | **15500 ms** (The function waits for confirmation)  | N/A             |
+| Transfer SPL Token                 | **19000 ms** (The function waits for confirmation) | N/A             |
+| Transfer SOL                        | **13806 ms** (The function waits for confirmation) | 279ms  (The function does not wait for confirmation)      |
 
 ---
 
