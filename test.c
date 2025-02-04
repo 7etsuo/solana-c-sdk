@@ -467,18 +467,18 @@ void test_airdrop() { test_sol_airdrop(); }
 void test_mint_token() { test_mint_spl_token(); }
 void test_transfer_spl() { test_transfer_spl_token(); }
 void test_transfer() { test_transfer_sol(); }
-
+void test_smart_contract() { test_counter(); }
 void test()
 {
     printf("\n| **Function**                      | **Execution Time** |\n");
     printf("|-----------------------------------|------------------|\n");
 
-    measure_time("Wallet Creation", test_wallet_creation);
-    measure_time("Wallet Loading", test_wallet_loading);
+    // measure_time("Wallet Creation", test_wallet_creation);
+    // measure_time("Wallet Loading", test_wallet_loading);
     measure_time("Airdrop Request", test_airdrop);
     measure_time("Mint SPL Token", test_mint_token);
     measure_time("Transfer SPL Token", test_transfer_spl);
-    measure_time("Transfer SOL", test_transfer);
+    // measure_time("Test Smart Contract", test_smart_contract);
 }
 
 int main()

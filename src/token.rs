@@ -170,21 +170,21 @@ pub extern "C" fn transfer_sol(
     let recipient_pubkey = Pubkey::new_from_array(recipient.data);
 
     // Verify that the sender's account exists
-    match client.rpc_client.get_account(&sender_pubkey) {
-        Ok(account) => {
-            if account.lamports < lamports {
-                eprintln!(
-                    "Sender does not have enough SOL. Balance: {}, Required: {}",
-                    account.lamports, lamports
-                );
-                return false;
-            }
-        }
-        Err(err) => {
-            eprintln!("Error checking sender's account: {:?}", err);
-            return false;
-        }
-    }
+    // match client.rpc_client.get_account(&sender_pubkey) {
+    //     Ok(account) => {
+    //         if account.lamports < lamports {
+    //             eprintln!(
+    //                 "Sender does not have enough SOL. Balance: {}, Required: {}",
+    //                 account.lamports, lamports
+    //             );
+    //             return false;
+    //         }
+    //     }
+    //     Err(err) => {
+    //         eprintln!("Error checking sender's account: {:?}", err);
+    //         return false;
+    //     }
+    // }
 
     // Step 1: Create the transfer instruction
     let transfer_instruction =
@@ -208,7 +208,7 @@ pub extern "C" fn transfer_sol(
     );
 
     // Step 4: Send and confirm the transaction
-    match client.rpc_client.send_and_confirm_transaction(&transaction) {
+    match client.rpc_client.send_transaction(&transaction) {
         Ok(_) => {
             println!(
                 "Successfully transferred {} lamports from {} to {}",
@@ -311,7 +311,7 @@ pub extern "C" fn transfer_spl(
     );
 
     // Step 6: Send and confirm the transaction
-    match client.rpc_client.send_and_confirm_transaction(&transaction) {
+    match client.rpc_client.send_transaction(&transaction) {
         Ok(_) => {
             println!(
                 "Successfully transferred {} tokens from {} to {}",
@@ -404,7 +404,7 @@ pub extern "C" fn create_spl_token(
     );
 
     // Send the transaction
-    match client.rpc_client.send_and_confirm_transaction(&transaction) {
+    match client.rpc_client.send_transaction(&transaction) {
         Ok(_) => true,
         Err(err) => {
             eprintln!("Error sending and confirming transaction: {:?}", err);
@@ -547,7 +547,7 @@ pub fn _get_or_create_associated_token_account(
 
             client
                 .rpc_client
-                .send_and_confirm_transaction(&assoc_transaction)
+                .send_transaction(&assoc_transaction)
                 .map_err(|err| format!("Error creating associated token account: {:?}", err))?;
 
             println!(
@@ -640,7 +640,7 @@ pub extern "C" fn mint_spl(
     );
 
     // Step 6: Send and confirm the mint transaction
-    match client.rpc_client.send_and_confirm_transaction(&transaction) {
+    match client.rpc_client.send_transaction(&transaction) {
         Ok(_) => {
             println!("Successfully minted {} tokens to {}", amount, assoc);
             true
