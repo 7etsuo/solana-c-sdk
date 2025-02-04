@@ -342,9 +342,9 @@ This repository benchmarks **Solana wallet operations** using **Rust (FFI via C)
 | Wallet Creation                   | **0.05 - 1.7 ms**  | 50 - 80 ms        |
 | Wallet Loading                     | **0.05 - 1.7 ms**  | 15 - 20 ms          |
 | Airdrop Request                    | 3000 ms  (The function waits for confirmation)  |       59ms (The function does not wait for confirmation)  |
-| Mint SPL Token                     | **15500 ms** (The function waits for confirmation)  | N/A             |
-| Transfer SPL Token                 | **19000 ms** (The function waits for confirmation) | N/A             |
-| Transfer SOL                        | **230 ms**  | 300ms      |
+| Mint SPL Token                     | **~300 ms** | N/A             |
+| Transfer SPL Token                 | **~280 ms** | N/A             |
+| Transfer SOL                        | **230 - 280 ms**  | 300 - 500 ms      |
 
 ---
 
@@ -357,7 +357,7 @@ This repository benchmarks **Solana wallet operations** using **Rust (FFI via C)
    - **High-level API** for easy Solana integration.
    - **Slower due to garbage collection** and runtime overhead.
 
-3. **Network-bound operations (Airdrops, SPL Token Minting, Transfers) take similar time** 🌍  
+3. **Network-bound operations (Airdrops, SPL Token Minting, Transfers) take a similar amount of time, as execution time is measured from the same starting point ** 🌍  
    - **These operations rely on blockchain processing time**, meaning the execution speed is mostly determined by **Solana network conditions and validator processing**.  
    - **Language choice affects only transaction preparation** (e.g., constructing, signing, and submitting transactions), but the actual confirmation time depends on Solana.  
    - **If the network is congested, all languages will experience delays equally**.  
