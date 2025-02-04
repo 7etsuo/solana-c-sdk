@@ -109,6 +109,14 @@ pub extern "C" fn get_wallet_address(wallet: *mut SolKeyPair) -> *mut c_char {
     c_str.into_raw()
 }
 
+#[no_mangle]
+pub extern "C" fn create_wallet() -> *mut SolKeyPair {
+    let keypair = Keypair::new();
+    let wallet = Box::new(SolKeyPair::from_existing(keypair));
+
+    Box::into_raw(wallet)
+}
+
 // Generate and save a Solana wallet, returning the public key as a C string
 #[no_mangle]
 pub extern "C" fn create_and_save_wallet(file_path: *const c_char) -> *mut SolKeyPair {

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+#include <sys/time.h>
+
 #include "header/anchor_counter_interface.c"
 
 const char *file_path = "wallet_keypair.json";
@@ -58,11 +59,11 @@ SolKeyPair *test_load_wallet_from_file(const char *file_path)
     // Check if the wallet loading succeeded
     if (wallet != NULL)
     {
-        SolPublicKey *pub = get_public_key(wallet);
-        // Print the loaded public key
-        printf("Loaded Solana Wallet Public Key: %s\n", pub->data);
-        // Print the wallet address
-        printf("Loaded Solana Wallet Address: %s\n", get_wallet_address(wallet));
+        // SolPublicKey *pub = get_public_key(wallet);
+        // // Print the loaded public key
+        // printf("Loaded Solana Wallet Public Key: %s\n", pub->data);
+        // // Print the wallet address
+        // printf("Loaded Solana Wallet Address: %s\n", get_wallet_address(wallet));
     }
     else
     {
@@ -444,38 +445,44 @@ void test_counter()
     free_payer(payer);
 }
 
+void measure_time(const char *test_name, void (*func)())
+{
+    struct timeval start, end;
+    gettimeofday(&start, NULL); // Start timing
+
+    func(); // Run the function
+
+    gettimeofday(&end, NULL); // End timing
+
+    // Compute execution time in milliseconds
+    double elapsed_time = ((end.tv_sec - start.tv_sec) * 1000.0) +
+                          ((end.tv_usec - start.tv_usec) / 1000.0);
+
+    printf("| %-30s | %-10.3f ms |\n", test_name, elapsed_time);
+}
+
+void test_wallet_creation() { create_wallet(); }
+void test_wallet_loading() { test_load_wallet_from_file(file_path); }
+void test_airdrop() { test_sol_airdrop(); }
+void test_mint_token() { test_mint_spl_token(); }
+void test_transfer_spl() { test_transfer_spl_token(); }
+void test_transfer() { test_transfer_sol(); }
+
 void test()
 {
-    test_create_and_save_wallet(file_path_recipient2);
-    test_load_wallet_from_file(file_path);
+    printf("\n| **Function**                      | **Execution Time** |\n");
+    printf("|-----------------------------------|------------------|\n");
 
-    test_create_and_save_mint_wallet();
-
-    test_create_and_save_recipient_wallet();
-
-    SolClient *client = test_sol_client_new(devnet_url);
-
-    test_sol_airdrop();
-
-    test_create_spl_token();
-
-    test_mint_spl_token();
-    test_mint_spl_token();
-
-    test_transfer_spl_token();
-
-    test_transfer_sol();
-
-    test_get_all_tokens();
-
-    test_counter();
+    measure_time("Wallet Creation", test_wallet_creation);
+    measure_time("Wallet Loading", test_wallet_loading);
+    measure_time("Airdrop Request", test_airdrop);
+    measure_time("Mint SPL Token", test_mint_token);
+    measure_time("Transfer SPL Token", test_transfer_spl);
+    measure_time("Transfer SOL", test_transfer);
 }
 
 int main()
 {
-    clock_t start = clock();
-    test_create_and_save_wallet(file_path_recipient2);
-    clock_t end = clock();
-    printf("Execution Time: %f ms\n", ((double)(end - start) / CLOCKS_PER_SEC) * 1000);
+    test();
     return 0;
 }
