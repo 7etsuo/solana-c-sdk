@@ -319,6 +319,51 @@ void test_counter()
 ## Unreal Plugin
 [UnrealSolSDK](https://github.com/VAR-META-Tech/UnrealSolanaSDK)
 
+---
+
+# 🚀 Solana Performance Benchmark: Rust (FFI via C) vs. C# (Solnet)
+
+This repository benchmarks **Solana wallet operations** using **Rust (FFI via C) and C# (Solnet)** to compare performance and efficiency.
+
+---
+
+## 📌 **Overview**
+| **Language** | **Description** |
+|-------------|----------------|
+| 🔗 **Rust (FFI via C)** | Uses C to call Rust functions via Foreign Function Interface (FFI). |
+| 🎯 **C# (Solnet)** | Uses the **Solnet** .NET SDK to interact with the Solana blockchain. |
+
+---
+
+## 📊 **Performance Comparison (Execution Time in ms)**
+
+| **Function**                      | **Rust (FFI via C)** | **C# (Solnet)**  |
+|-----------------------------------|----------------|------------------|
+| Wallet Creation                   | **0.05 - 1.7 ms**  | 50 - 80 ms        |
+| Wallet Loading                     | **0.05 - 1.7 ms**  | 300 - 380 ms          |
+| Airdrop Request                    | 3000 ms  (The function waits for confirmation)  |       59ms (The function does not wait for confirmation)  |
+| Mint SPL Token                     | **15500 ms**  | N/A             |
+| Transfer SPL Token                 | **19000 ms**  | N/A             |
+| Transfer SOL                        | **13806 ms**  | N/A        |
+
+---
+
+## 📌 **Observations**
+1. **Rust (FFI via C) is significantly faster than C# (Solnet)** ⚡  
+   - **Faster** in wallet operations (**creation, loading**).
+   - **Lower overhead** than Solnet's **managed memory** approach.
+
+2. **C# (Solnet) is easier for .NET developers** 🎯  
+   - **High-level API** for easy Solana integration.
+   - **Slower due to garbage collection** and runtime overhead.
+
+3. **Network-bound operations (Airdrops, SPL Token Minting, Transfers) take similar time** 🌍  
+   - **These operations rely on blockchain processing time**, meaning the execution speed is mostly determined by **Solana network conditions and validator processing**.  
+   - **Language choice affects only transaction preparation** (e.g., constructing, signing, and submitting transactions), but the actual confirmation time depends on Solana.  
+   - **If the network is congested, all languages will experience delays equally**.  
+
+---
+
 
 ## License
 
