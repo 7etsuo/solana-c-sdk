@@ -122,6 +122,8 @@ struct SolSecretKey *get_secret_key(struct SolKeyPair *wallet);
 
 char *get_wallet_address(struct SolKeyPair *wallet);
 
+struct SolKeyPair *create_wallet(void);
+
 struct SolKeyPair *create_and_save_wallet(const char *file_path);
 
 struct SolKeyPair *new_keypair(void);
