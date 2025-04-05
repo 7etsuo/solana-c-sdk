@@ -1,1 +1,38 @@
-/target
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# C build artifacts
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+generate_c_interface
+
+# Generated test files
+test
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Wallet keypair files (contain private keys, should never be committed)
+wallet_keypair*.json
+*.keypair
+test.json
+
+# Log files
+*.log
